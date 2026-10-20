@@ -1,0 +1,37 @@
+name: Gerar APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Montar APK
+        run: bash build-apk.sh ${{ github.run_number }}
+
+      - name: Publicar para download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete app --yes --cleanup-tag || true
+          gh release create app farmando-aura.apk \
+            --title "Farmando Aura (versão ${{ github.run_number }})" \
+            --notes "Baixe o arquivo farmando-aura.apk no celular e instale." \
+            --target ${{ github.sha }} --latest
