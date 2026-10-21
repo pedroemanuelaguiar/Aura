@@ -470,7 +470,6 @@ function renderWorkout(){
     <div><div class="eyebrow">Treino ${W.day} · ${esc(p.name)}</div><div class="muted num" style="font-size:12px">Exercício ${W.exIdx+1} de ${p.ex.length}</div></div>
     <button class="linkbtn" id="finish">Finalizar</button>
   </div>
-  <div class="chips">${p.ex.map((e,i)=>{const n=(W.log[e.id]||[]).length;return `<button class="chip ${i===W.exIdx?"cur":n>=e.sets?"done":""}" data-go="${i}">${esc(e.name.split(" ")[0])} ${n}/${e.sets}</button>`}).join("")}</div>
   <section class="card">
     <div class="row between" style="align-items:flex-start"><h1 class="ex-name">${esc(ex.name)}</h1>
       <div class="seg" role="group" aria-label="Unidade da carga"><button data-unit="kg" aria-pressed="${u==="kg"}">kg</button><button data-unit="placa" aria-pressed="${u==="placa"}">placa</button></div></div>
@@ -479,7 +478,7 @@ function renderWorkout(){
       <div><span class="eyebrow">Série</span><b class="num">${Math.min(setIdx+1,ex.sets)} de ${ex.sets}</b></div>
       <div><span class="eyebrow">Meta</span><b class="num">${ex.min}–${ex.max} reps</b></div>
     </div>
-    <div class="last muted">${prev?`Última vez: <span class="num">${prev.map(s=>`${wLabel(s.w,u)} × ${s.r}`).join(" · ")}</span>`:"Primeira vez nesse exercício. Escolha uma carga que deixe 1–3 reps sobrando."}</div>
+    ${prev?`<div class="last muted">Última vez: <span class="num">${prev.map(s=>`${wLabel(s.w,u)} × ${s.r}`).join(" · ")}</span></div>`:""}
     ${topped?`<div class="tip"><b>Hora de subir.</b> Você bateu ${ex.max} reps em todas as séries. Já coloquei +${fmt(ex.step)} ${u==="placa"?"na placa":"kg"}.</div>`:""}
   </section>
   ${setIdx<ex.sets?`
