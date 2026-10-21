@@ -1,6 +1,6 @@
 // Farmando Aura — service worker
 // Ao publicar uma nova versão, mude o número abaixo para o celular baixar tudo de novo.
-const VERSION = "v7";
+const VERSION = "v8";
 const CACHE = "aura-" + VERSION;
 const SHELL = [
   "./",
