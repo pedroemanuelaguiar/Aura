@@ -1,6 +1,9 @@
 package com.pedro.farmandoaura;
 
 import android.app.Activity;
+import android.app.DownloadManager;
+import android.content.BroadcastReceiver;
+import android.content.IntentFilter;
 import android.content.ActivityNotFoundException;
 import android.content.ContentValues;
 import android.content.Context;
@@ -118,6 +121,49 @@ public class MainActivity extends Activity {
                         out.write(bytes);
                     }
                 }
+                return "ok";
+            } catch (Exception e) {
+                return "erro";
+            }
+        }
+
+        @JavascriptInterface
+        public String version() {
+            try {
+                return String.valueOf(ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0).versionCode);
+            } catch (Exception e) {
+                return "0";
+            }
+        }
+
+        @JavascriptInterface
+        public String downloadUpdate(String url) {
+            try {
+                final DownloadManager dm = (DownloadManager) ctx.getSystemService(Context.DOWNLOAD_SERVICE);
+                if (dm == null) return "erro";
+                DownloadManager.Request r = new DownloadManager.Request(Uri.parse(url));
+                r.setTitle("Farmando Aura");
+                r.setDescription("Baixando a nova versão");
+                r.setMimeType("application/vnd.android.package-archive");
+                r.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                r.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "farmando-aura-" + System.currentTimeMillis() + ".apk");
+                final long id = dm.enqueue(r);
+                BroadcastReceiver done = new BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context c, Intent i) {
+                        if (i.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1) != id) return;
+                        try { ctx.unregisterReceiver(this); } catch (Exception ignored) {}
+                        Uri apk = dm.getUriForDownloadedFile(id);
+                        if (apk == null) return;
+                        Intent install = new Intent(Intent.ACTION_VIEW);
+                        install.setDataAndType(apk, "application/vnd.android.package-archive");
+                        install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                        try { ctx.startActivity(install); } catch (Exception ignored) {}
+                    }
+                };
+                IntentFilter f = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+                if (Build.VERSION.SDK_INT >= 33) ctx.registerReceiver(done, f, Context.RECEIVER_EXPORTED);
+                else ctx.registerReceiver(done, f);
                 return "ok";
             } catch (Exception e) {
                 return "erro";

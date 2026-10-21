@@ -387,7 +387,8 @@ function renderHome(st){
 
   const p=PLAN[nd];
   const lb=LS.get("fa.lastBackup",null), snooze=LS.get("fa.snooze",0);
-  const due = sessions.length>0 && (!lb || Date.now()-lb>30*864e5) && Date.now()>snooze;
+  const firstT = sessions.length ? parseDay(sessions[0].date).getTime() : Date.now();
+  const due = sessions.length>0 && (lb ? Date.now()-lb>30*864e5 : Date.now()-firstT>7*864e5) && Date.now()>snooze;
   view.innerHTML = `
   ${due?`<section class="card backup-due">
     <div class="eyebrow">Backup do mês</div>
@@ -634,7 +635,7 @@ function rocketChart(cv,vals,unitTxt,onBoom){
   const grad=c.createLinearGradient(0,H,W_,0); grad.addColorStop(0,"#e8317a"); grad.addColorStop(.5,"#ff5a36"); grad.addColorStop(1,"#ffb020");
   const sparks=[]; let boomed=false; const t0=performance.now(); const dur=reduce?1:1700;
   function frame(now){
-    const t=Math.min(1,(now-t0)/dur); const e=1-Math.pow(1-t,3);
+    const t=Math.max(0,Math.min(1,(now-t0)/dur)); const e=1-Math.pow(1-t,3);
     c.clearRect(0,0,W_,H);
     c.strokeStyle="#343a44"; c.lineWidth=1; for(let i=0;i<4;i++){const y=pad+(H-pad*2)*i/3;c.beginPath();c.moveTo(pad,y);c.lineTo(W_-pad,y);c.stroke()}
     const segs=P.length-1, prog=e*segs, k=Math.floor(prog), f=prog-k;

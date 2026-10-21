@@ -200,6 +200,7 @@ nav.tabs button[aria-current="page"]{color:var(--fg);background:var(--surface)}
 .mini:disabled,.btn:disabled{opacity:.35;cursor:default}
 .mini.rm.arm{background:var(--flame-3);color:#fff}
 .ex-name{min-width:0}
+.update-card{box-shadow:inset 0 0 0 2px var(--good)}
 .backup-due{box-shadow:inset 0 0 0 2px var(--flame-2)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);font-weight:700;padding:10px 16px;border-radius:12px;z-index:70;font-size:14px;max-width:calc(100% - 32px)}
 .note{font-size:12px;color:var(--muted);text-align:center}
@@ -228,6 +229,28 @@ nav.tabs button[aria-current="page"]{color:var(--fg);background:var(--surface)}
 <script>
 /* ============ ANDROID ============ */
 if(window.AuraAndroid){try{Object.defineProperty(navigator,"vibrate",{configurable:true,value:p=>{try{AuraAndroid.vibrate(JSON.stringify(Array.isArray(p)?p:[p]))}catch(e){}return true}})}catch(e){}}
+
+/* ============ ATUALIZAÇÃO (APK) ============ */
+let UPDATE=null;
+async function checkUpdate(){
+  if(!window.AuraAndroid||!AuraAndroid.version) return;
+  try{
+    const mine=+AuraAndroid.version()||0;
+    const r=await fetch("https://api.github.com/repos/pedroemanuelaguiar/Aura/releases/latest",{cache:"no-store"});
+    if(!r.ok) return;
+    const j=await r.json();
+    const m=/vers[aã]o\s+(\d+)/i.exec(j.name||"");
+    const latest=m?+m[1]:0;
+    const asset=(j.assets||[]).find(x=>x.name==="farmando-aura.apk");
+    if(asset && latest>mine){UPDATE={v:latest,url:asset.browser_download_url};if(!W&&tab==="home")render()}
+  }catch(e){}
+}
+function startUpdate(){
+  if(!UPDATE) return;
+  let r="erro"; try{r=AuraAndroid.downloadUpdate(UPDATE.url)}catch(e){}
+  if(r==="ok"){UPDATE.downloading=true;render();toast("Baixando. Quando terminar, o Android pede para instalar.")}
+  else toast("Não deu para baixar agora. Tente de novo com internet.");
+}
 
 /* ============ PLANO ============ */
 const DEFAULT_PLAN = {
@@ -393,8 +416,10 @@ function renderHome(st){
 
   const p=PLAN[nd];
   const lb=LS.get("fa.lastBackup",null), snooze=LS.get("fa.snooze",0);
-  const due = sessions.length>0 && (!lb || Date.now()-lb>30*864e5) && Date.now()>snooze;
+  const firstT = sessions.length ? parseDay(sessions[0].date).getTime() : Date.now();
+  const due = sessions.length>0 && (lb ? Date.now()-lb>30*864e5 : Date.now()-firstT>7*864e5) && Date.now()>snooze;
   view.innerHTML = `
+  ${UPDATE?`<section class="card update-card"><div class="row between"><div><div class="eyebrow">Nova versão disponível</div><b style="font-size:16px">${UPDATE.downloading?"Baixando a atualização...":"Melhorias prontas para instalar"}</b></div><button class="btn primary" id="upd" ${UPDATE.downloading?"disabled":""}>Atualizar</button></div></section>`:""}
   ${due?`<section class="card backup-due">
     <div class="eyebrow">Backup do mês</div>
     <b style="font-size:17px">${lb?"Já faz um mês do último backup":"Hora do primeiro backup"}</b>
@@ -434,6 +459,7 @@ function renderHome(st){
   `;
   view.querySelectorAll("[data-start]").forEach(b=>b.onclick=()=>startWorkout(b.dataset.start));
   const bk=$("#bk"); if(bk) bk.onclick=exportBackup;
+  const up=$("#upd"); if(up) up.onclick=startUpdate;
   const bl=$("#bklater"); if(bl) bl.onclick=()=>{LS.set("fa.snooze",Date.now()+3*864e5);render();toast("Lembro de novo em 3 dias.")};
 }
 
@@ -640,7 +666,7 @@ function rocketChart(cv,vals,unitTxt,onBoom){
   const grad=c.createLinearGradient(0,H,W_,0); grad.addColorStop(0,"#e8317a"); grad.addColorStop(.5,"#ff5a36"); grad.addColorStop(1,"#ffb020");
   const sparks=[]; let boomed=false; const t0=performance.now(); const dur=reduce?1:1700;
   function frame(now){
-    const t=Math.min(1,(now-t0)/dur); const e=1-Math.pow(1-t,3);
+    const t=Math.max(0,Math.min(1,(now-t0)/dur)); const e=1-Math.pow(1-t,3);
     c.clearRect(0,0,W_,H);
     c.strokeStyle="#343a44"; c.lineWidth=1; for(let i=0;i<4;i++){const y=pad+(H-pad*2)*i/3;c.beginPath();c.moveTo(pad,y);c.lineTo(W_-pad,y);c.stroke()}
     const segs=P.length-1, prog=e*segs, k=Math.floor(prog), f=prog-k;
@@ -864,6 +890,8 @@ function renderEditor(){
 
 render();
 initCloud();
+checkUpdate();
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
   window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").then(reg=>{
     reg.addEventListener("updatefound",()=>{const nw=reg.installing;nw&&nw.addEventListener("statechange",()=>{if(nw.state==="installed"&&navigator.serviceWorker.controller)toast("Nova versão instalada. Feche e abra o app para usar.")})});
