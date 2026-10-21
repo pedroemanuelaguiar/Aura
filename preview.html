@@ -1,0 +1,1072 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Farmando Aura</title>
+<meta name="description" content="Treino A/B/C/D com timer, progresso e ofensiva.">
+<meta name="theme-color" content="#15171b">
+<link rel="manifest" href="manifest.webmanifest?v=5">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Farmando Aura">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Figtree:wght@400;500;600;700;800&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px)}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;overscroll-behavior-y:none}
+[hidden]{display:none!important}
+img{max-width:100%}
+/* Layout: one-column phone app — sticky top bar, scrolling view, fixed bottom tab bar. Dark by design (gym floor rubber), flame gradient as the single loud element. */
+:root{
+  color-scheme: dark;
+  --bg:#15171b;
+  --surface:#1e2127;
+  --surface-2:#272b33;
+  --line:#343a44;
+  --fg:#efeae3;
+  --muted:#9aa1ad;
+  --flame-1:#ffb020;
+  --flame-2:#ff5a36;
+  --flame-3:#e8317a;
+  --good:#3fd28b;
+  --cold:#5b6574;
+  --display:"Anton","Impact","Arial Narrow",sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --flame: linear-gradient(135deg,var(--flame-1),var(--flame-2) 55%,var(--flame-3));
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible{outline:2px solid var(--flame-1);outline-offset:2px}
+.app{max-width:520px;margin:0 auto;min-height:100%;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 calc(92px + env(safe-area-inset-bottom,0px))}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;align-items:center;justify-content:space-between;padding-block:14px 10px}
+.brand{font-family:var(--display);font-size:22px;letter-spacing:.02em;text-transform:uppercase}
+.brand span{background:var(--flame);-webkit-background-clip:text;background-clip:text;color:transparent}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:var(--surface);font-weight:700;font-variant-numeric:tabular-nums}
+.pill svg{width:16px;height:18px}
+.view{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--surface);border-radius:18px;padding:18px}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1,h2,h3{margin:0;text-wrap:balance}
+.big{font-family:var(--display);font-weight:400;letter-spacing:.01em;line-height:1}
+.muted{color:var(--muted)}
+.row{display:flex;gap:12px;align-items:center}
+.between{justify-content:space-between}
+.num{font-variant-numeric:tabular-nums}
+
+/* streak hero */
+.streak{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}
+.flame-big{width:74px;height:90px;filter:drop-shadow(0 6px 18px rgba(255,90,54,.35))}
+.flame-big.off{filter:grayscale(1) opacity(.45)}
+.streak .big{font-size:56px}
+.streak .big small{font-size:20px;margin-left:6px;color:var(--muted)}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px}
+.wd{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--muted);font-weight:600}
+.wd i{width:30px;height:30px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center}
+.wd i.done{background:var(--flame)}
+.wd i.done svg{width:14px;height:16px}
+.wd.today b{color:var(--fg)}
+.wd.today i:not(.done){box-shadow:inset 0 0 0 2px var(--flame-2)}
+
+/* next workout */
+.next{position:relative;overflow:hidden}
+.next .letter{font-family:var(--display);font-size:120px;line-height:.8;position:absolute;right:-6px;bottom:-10px;color:var(--surface-2);pointer-events:none}
+.next h2{font-size:22px;font-weight:800;position:relative}
+.next .btn{position:relative;z-index:1}
+.next ul{list-style:none;margin:10px 0 16px;padding:0;position:relative;display:grid;gap:3px;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 20px;border-radius:14px;font-weight:800;font-size:16px}
+.btn.primary{background:var(--flame);color:#1a0d06;box-shadow:0 6px 20px rgba(255,90,54,.3)}
+.btn.primary:active{transform:translateY(1px) scale(.99)}
+.btn.ghost{background:var(--surface-2)}
+.btn.block{width:100%}
+.days{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.daybtn{background:var(--surface);border-radius:14px;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.daybtn b{font-family:var(--display);font-size:28px;font-weight:400;line-height:1}
+.daybtn span{font-size:11px;color:var(--muted);text-align:center}
+.daybtn.sug{box-shadow:inset 0 0 0 2px var(--flame-2)}
+
+/* heat calendar */
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,1fr);gap:4px;margin-top:10px}
+.heat i{aspect-ratio:1;border-radius:4px;background:var(--surface-2);max-width:100%}
+.heat i.on{background:var(--flame)}
+.heat i.fut{background:transparent}
+
+/* tabs */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:8px max(16px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+nav.tabs .in{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+nav.tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px;border-radius:12px;font-size:12px;font-weight:700;color:var(--muted)}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button[aria-current="page"]{color:var(--fg);background:var(--surface)}
+
+/* workout */
+.wo-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;padding:6px 10px;border-radius:999px;background:var(--surface);font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap}
+.chip.cur{background:var(--fg);color:var(--bg)}
+.chip.done{color:var(--good)}
+.ex-name{font-size:26px;font-weight:800;line-height:1.15}
+.setdots{display:flex;gap:6px;margin-top:10px}
+.setdots i{height:6px;flex:1;border-radius:3px;background:var(--surface-2)}
+.setdots i.done{background:var(--flame)}
+.setdots i.cur{background:var(--fg)}
+.target{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.target div{padding:2px 0}
+.target b{display:block;font-family:var(--display);font-size:24px;font-weight:400;letter-spacing:.02em}
+.last{margin-top:12px;font-size:13px}
+.tip{margin-top:10px;font-size:13px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--flame-2) 14%,var(--surface));}
+.tip b{color:var(--flame-1)}
+.steppers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stepper{background:var(--surface);border-radius:16px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.stepper label{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.stepper .ctl{display:grid;grid-template-columns:40px 1fr 40px;align-items:center;width:100%;gap:4px}
+.stepper button{height:40px;border-radius:12px;background:var(--surface-2);font-size:22px;font-weight:700}
+.stepper input{width:100%;min-width:0;text-align:center;background:transparent;border:0;color:var(--fg);font-family:var(--display);font-size:38px;padding:0}
+.logged{display:flex;flex-wrap:wrap;gap:6px}
+.logged span{font-size:12px;font-weight:700;padding:4px 8px;border-radius:8px;background:var(--surface-2)}
+.linkbtn{color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px}
+
+/* rest */
+.rest{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding-top:10px}
+.ring{position:relative;width:min(72vw,260px);aspect-ratio:1;max-width:100%}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .t{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-size:64px}
+.ring.go .t{color:var(--good)}
+.rest .acts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;width:100%}
+
+/* progress */
+.select{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+.select::-webkit-scrollbar{display:none}
+.chart-wrap{overflow:hidden}
+.chart-wrap svg{width:100%;height:auto;display:block}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stats div{background:var(--surface-2);border-radius:12px;padding:10px}
+.stats b{display:block;font-family:var(--display);font-size:22px;font-weight:400}
+.stats span{font-size:11px;color:var(--muted);font-weight:600}
+.hist{display:grid;gap:8px}
+.hist .item{display:grid;grid-template-columns:42px 1fr auto;gap:12px;align-items:center;background:var(--surface);border-radius:14px;padding:10px 12px}
+.hist .item b.l{font-family:var(--display);font-size:26px;font-weight:400;text-align:center}
+.del{font-size:12px;font-weight:700;color:var(--muted);padding:6px 8px;border-radius:8px}
+.del.arm{background:var(--flame-3);color:#fff}
+.empty{text-align:center;padding:28px 18px;color:var(--muted)}
+.empty b{display:block;color:var(--fg);font-size:17px;margin-bottom:4px}
+
+/* summary */
+.sum-row{display:grid;grid-template-columns:1fr auto;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.sum-row:last-child{border-bottom:0}
+.up{color:var(--good);font-weight:800}
+.down{color:var(--muted);font-weight:700}
+
+/* celebration */
+.celebrate{position:fixed;inset:0;z-index:50;background:rgba(10,8,10,.82);display:grid;place-items:center;padding:max(20px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.celebrate .box{width:100%;max-width:440px;background:var(--surface);border-radius:24px;padding:22px 18px;text-align:center;position:relative;overflow:hidden}
+.celebrate .msg{font-family:var(--display);font-size:clamp(40px,12vw,58px);line-height:.95;text-transform:uppercase;background:var(--flame);-webkit-background-clip:text;background-clip:text;color:transparent;margin:6px 0 4px}
+.celebrate .sub{color:var(--muted);font-size:14px}
+.celebrate .delta{font-family:var(--display);font-size:26px;color:var(--good);margin-top:6px}
+.celebrate canvas.chart{width:100%;height:180px;display:block;margin:14px 0}
+#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:60}
+@keyframes jump{0%{transform:translateY(60px) scale(.7);opacity:0}45%{transform:translateY(-26px) scale(1.06);opacity:1}65%{transform:translateY(6px) scale(.98)}82%{transform:translateY(-6px)}100%{transform:none}}
+@keyframes shake{0%,100%{transform:none}20%{transform:translate(-6px,2px) rotate(-1deg)}40%{transform:translate(6px,-2px) rotate(1deg)}60%{transform:translate(-4px,1px)}80%{transform:translate(3px,-1px)}}
+.celebrate .box.anim{animation:jump .7s cubic-bezier(.2,.9,.3,1.2) both}
+.celebrate .box.boom{animation:shake .35s ease}
+@keyframes pop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}
+.celebrate .msg.pop{animation:pop .5s .15s both}
+@media (prefers-reduced-motion:reduce){.celebrate .box.anim,.celebrate .box.boom,.celebrate .msg.pop{animation:none}}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:2px;flex:0 0 auto}
+.seg button{padding:6px 10px;border-radius:8px;font-size:12px;font-weight:800;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.seg.wide{display:flex;width:100%}.seg.wide button{flex:1;padding:9px 10px}
+.tag{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:6px;background:var(--surface-2);color:var(--muted);vertical-align:middle}
+.ed{display:flex;flex-direction:column;gap:12px}
+.tf{display:flex;flex-direction:column;gap:4px}
+.tf label,.nf label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.tf input,.tf select{background:var(--surface-2);border:0;border-radius:10px;padding:12px;color:var(--fg);font:inherit;font-weight:600;font-size:16px;width:100%;min-width:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nf{display:flex;flex-direction:column;gap:4px;min-width:0}
+.nf .ctl{display:grid;grid-template-columns:36px 1fr 36px;gap:4px;align-items:center}
+.nf .ctl button{height:40px;border-radius:10px;background:var(--surface-2);font-weight:800;font-size:18px}
+.nf .ctl input{width:100%;min-width:0;text-align:center;background:transparent;border:0;color:var(--fg);font-weight:800;font-size:18px;font-variant-numeric:tabular-nums}
+.mini{padding:6px 9px;border-radius:8px;background:var(--surface-2);font-size:12px;font-weight:800}
+.mini:disabled,.btn:disabled{opacity:.35;cursor:default}
+.mini.rm.arm{background:var(--flame-3);color:#fff}
+.ex-name{min-width:0}
+.backup-due{box-shadow:inset 0 0 0 2px var(--flame-2)}
+/* resposta ao toque e transições */
+button,.btn,label.btn{transition:transform .16s cubic-bezier(.2,.9,.3,1.4),background-color .2s,box-shadow .2s,opacity .2s;-webkit-user-select:none;user-select:none}
+button:active,label.btn:active{transform:scale(.95)}
+.btn.primary:active{transform:scale(.97);box-shadow:0 2px 10px rgba(255,90,54,.35)}
+nav.tabs button svg{transition:transform .25s cubic-bezier(.2,.9,.3,1.4)}
+nav.tabs button[aria-current="page"] svg{transform:translateY(-2px) scale(1.08)}
+.setdots i{transition:background .35s,transform .35s}
+.setdots i.cur{transform:scaleY(1.5)}
+@keyframes viewIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.view.enter>*{animation:viewIn .34s cubic-bezier(.2,.8,.2,1) both}
+.view.enter>*:nth-child(2){animation-delay:.04s}.view.enter>*:nth-child(3){animation-delay:.08s}.view.enter>*:nth-child(4){animation-delay:.12s}.view.enter>*:nth-child(5){animation-delay:.16s}.view.enter>*:nth-child(n+6){animation-delay:.2s}
+@keyframes popIn{from{opacity:.4;transform:scale(.97)}to{opacity:1;transform:none}}
+.pop{animation:popIn .3s cubic-bezier(.2,.9,.3,1.2)}
+.toast{animation:viewIn .25s ease-out}
+.burst-txt{position:fixed;z-index:67;pointer-events:none;transform:translate(-50%,-50%);font-family:var(--display);font-size:40px;line-height:1;color:var(--flame-1);text-align:center;text-shadow:0 3px 16px rgba(255,90,54,.7);animation:floatUp 1.45s cubic-bezier(.2,.8,.2,1) forwards;white-space:nowrap}
+.burst-txt small{display:block;font-family:var(--body);font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--fg);text-shadow:none;margin-bottom:4px}
+@keyframes floatUp{0%{opacity:0;transform:translate(-50%,-20%) scale(.5)}18%{opacity:1;transform:translate(-50%,-70%) scale(1.18)}30%{transform:translate(-50%,-80%) scale(1)}100%{opacity:0;transform:translate(-50%,-230%) scale(1)}}
+@keyframes hit{0%{transform:scale(1)}30%{transform:scale(1.08);filter:brightness(1.35)}60%{transform:scale(.97)}100%{transform:scale(1)}}
+.btn.hit{animation:hit .5s cubic-bezier(.2,.9,.3,1.4);opacity:1!important}
+#burst{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:65}
+/* corpo */
+.body-card{display:flex;flex-direction:column;gap:8px}
+.body-wrap{display:flex;justify-content:center;padding:4px 0}
+.body{width:min(78vw,320px);height:auto;max-width:100%;overflow:visible}
+.body .bn{fill:var(--surface-2);fill-opacity:.6;stroke:var(--bg);stroke-width:3}
+.body .mus{fill:var(--surface-2);stroke:var(--bg);stroke-width:3;transition:fill-opacity .3s,stroke .2s;cursor:pointer;outline:none}
+.body .mus.on{fill:url(#mg)}
+.body .mus.sel{stroke:var(--fg);stroke-width:5}
+.body .mus:focus-visible{stroke:var(--flame-1);stroke-width:6}
+.body .mus:active{filter:brightness(1.25)}
+.exlist{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.exrow{background:var(--surface-2);border-radius:14px;overflow:hidden}
+.exhead{display:grid;grid-template-columns:1fr 80px auto;gap:10px;align-items:center;width:100%;padding:12px;text-align:left}
+.exhead.dim{grid-template-columns:1fr auto;opacity:.6}
+.exname{font-weight:700;min-width:0}
+.spark{width:80px;height:26px;display:block}
+.exp{font-weight:800;font-size:13px}
+.exbody{padding:0 12px 12px;display:flex;flex-direction:column;gap:10px;animation:viewIn .3s ease-out}
+.exbody .stats div{background:var(--surface)}
+@media (prefers-reduced-motion:reduce){.view.enter>*,.pop,.exbody,.toast,.burst-txt{animation:none}button:active{transform:none}}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);font-weight:700;padding:10px 16px;border-radius:12px;z-index:70;font-size:14px;max-width:calc(100% - 32px)}
+.note{font-size:12px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">Farmando <span>Aura</span></div>
+    <div class="pill num" id="topStreak" aria-label="Ofensiva"></div>
+  </header>
+  <main id="view" class="view"></main>
+</div>
+<nav class="tabs" id="tabs">
+  <div class="in">
+    <button data-tab="home" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M3 9.5v5M21 9.5v5M6.5 12h11"/></svg>Treino</button>
+    <button data-tab="progress">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18M5 16l4-5 4 3 6-8"/><path d="M15 6h4v4"/></svg>Progresso</button>
+    <button data-tab="plan">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Plano</button>
+  </div>
+</nav>
+<canvas id="confetti" hidden></canvas>
+<canvas id="burst" hidden></canvas>
+
+<script>
+/* ============ PLANO ============ */
+const DEFAULT_PLAN = {
+  A:{name:"Superior · Força", focus:"Cargas mais altas, menos reps", ex:[
+    {id:"supino-reto",name:"Supino reto",sets:3,min:6,max:8,rest:150,step:2.5},
+    {id:"remada-curvada",name:"Remada curvada ou cavalinho",sets:3,min:6,max:8,rest:150,step:2.5},
+    {id:"desenv-halter",name:"Desenvolvimento com halteres",sets:2,min:8,max:10,rest:120,step:2},
+    {id:"puxada-frontal",name:"Puxada frontal",sets:2,min:8,max:10,rest:120,step:1,unit:"placa"},
+    {id:"rosca-direta",name:"Rosca direta",sets:2,min:10,max:12,rest:75,step:1},
+    {id:"triceps-polia",name:"Tríceps na polia",sets:2,min:10,max:12,rest:75,step:1,unit:"placa"}]},
+  B:{name:"Inferior · Força", focus:"Base pesada de pernas", ex:[
+    {id:"agachamento",name:"Agachamento livre ou Smith",sets:3,min:6,max:8,rest:180,step:5},
+    {id:"stiff",name:"Stiff",sets:3,min:8,max:10,rest:150,step:2.5},
+    {id:"leg-press",name:"Leg press",sets:2,min:10,max:12,rest:120,step:10},
+    {id:"mesa-flexora",name:"Mesa flexora",sets:2,min:10,max:12,rest:90,step:2.5},
+    {id:"panturrilha-pe",name:"Panturrilha em pé",sets:3,min:10,max:15,rest:60,step:5}]},
+  C:{name:"Superior · Volume", focus:"Mais reps, mais pump", ex:[
+    {id:"supino-inclinado-halter",name:"Supino inclinado com halteres",sets:3,min:8,max:12,rest:120,step:2},
+    {id:"remada-baixa",name:"Remada baixa",sets:3,min:10,max:12,rest:90,step:1,unit:"placa"},
+    {id:"elevacao-lateral",name:"Elevação lateral",sets:3,min:12,max:15,rest:60,step:1},
+    {id:"crucifixo",name:"Crucifixo ou peck deck",sets:2,min:12,max:15,rest:60,step:2.5},
+    {id:"rosca-martelo",name:"Rosca martelo",sets:2,min:10,max:12,rest:60,step:1},
+    {id:"triceps-frances",name:"Tríceps francês",sets:2,min:10,max:12,rest:60,step:1}]},
+  D:{name:"Inferior · Volume", focus:"Unilaterais e isolados", ex:[
+    {id:"bulgaro",name:"Afundo ou búlgaro (por perna)",sets:3,min:8,max:12,rest:90,step:2},
+    {id:"extensora",name:"Cadeira extensora",sets:3,min:12,max:15,rest:75,step:2.5},
+    {id:"flexora-sentada",name:"Flexora sentada",sets:3,min:10,max:12,rest:75,step:2.5},
+    {id:"elevacao-pelvica",name:"Elevação pélvica",sets:2,min:10,max:12,rest:90,step:5},
+    {id:"panturrilha-sentada",name:"Panturrilha sentada",sets:3,min:12,max:15,rest:60,step:5},
+    {id:"abdominal",name:"Abdominal",sets:3,min:12,max:15,rest:45,step:2.5}]}
+};
+const ORDER = ["A","B","C","D"];
+const clone = o=>JSON.parse(JSON.stringify(o));
+let PLAN = (()=>{try{const v=localStorage.getItem("fa.plan");if(v){const p=JSON.parse(v);if(ORDER.every(d=>p[d]&&Array.isArray(p[d].ex)))return p}}catch(e){}return clone(DEFAULT_PLAN)})();
+let EX_INDEX = {};
+function indexPlan(){EX_INDEX={};ORDER.forEach(d=>PLAN[d].ex.forEach(e=>EX_INDEX[e.id]={...e,day:d}))}
+indexPlan();
+/* unidade: "kg" ou "placa" (número do pino na polia) */
+const unitOf = ex=>(ex&&ex.unit)==="placa"?"placa":"kg";
+const wLabel = (v,u)=>u==="placa"?`placa ${fmt(v)}`:`${fmt(v)}kg`;
+const volUnit = u=>u==="placa"?"pts":"kg";
+
+const MESSAGES = [
+  "Farmou aura","Hype no talo","O shape tá vindo","Subiu mais que cripto em alta","Modo monstro ativado",
+  "Aura +1000","Isso é cinema","Progressão de respeito","Tá saindo da jaula","Recorde pessoal desbloqueado",
+  "O ferro respeitou","Caiu na sobrecarga","Nível subiu","Ninguém segura","Que fase",
+  "Ganhou XP de verdade","Shape em atualização","Mais forte que ontem","Craque do supino era você","Foguete não dá ré",
+  "Hipertrofia em andamento","Respeita o processo","Volume é rei","Absurdo, sinceramente","Carregando o shape... 87%"
+];
+const SUBS = [
+  "Você moveu mais peso que da última vez.","O músculo recebeu o recado.","Sobrecarga progressiva na prática.",
+  "Seu eu do treino passado ficou para trás.","É assim que o shape é construído."
+];
+
+/* ============ ARMAZENAMENTO ============ */
+const LS = {
+  get(k,f){try{const v=localStorage.getItem(k);return v?JSON.parse(v):f}catch(e){return f}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},
+  del(k){try{localStorage.removeItem(k)}catch(e){}}
+};
+let sessions = LS.get("fa.sessions",[]);   // cache local
+let col = null;                             // coleção privada no db
+let cloud = "pending";
+
+async function initCloud(){
+  cloud="local";
+  try{ if(navigator.storage&&navigator.storage.persist) await navigator.storage.persist() }catch(e){}
+  render();
+}
+async function saveSession(s){
+  sessions.push(s); sessions.sort((a,b)=>a.date.localeCompare(b.date));
+  LS.set("fa.sessions",sessions);
+  if(col){ try{await col.doc(s.id).set(s)}catch(e){ toast("Salvo neste aparelho. A nuvem não respondeu.") } }
+}
+async function deleteSession(id){
+  sessions = sessions.filter(s=>s.id!==id); LS.set("fa.sessions",sessions);
+  if(col){ try{await col.doc(id).delete()}catch(e){} }
+}
+
+/* ============ CÁLCULOS ============ */
+const pad = n=>String(n).padStart(2,"0");
+const dayStr = d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseDay = s=>{const [y,m,d]=s.slice(0,10).split("-").map(Number);return new Date(y,m-1,d)};
+const daysBetween = (a,b)=>Math.round((parseDay(b)-parseDay(a))/864e5);
+const fmt = n=>Number.isInteger(n)?n.toLocaleString("pt-BR"):n.toLocaleString("pt-BR",{maximumFractionDigits:1});
+const setVol = s=> s.w>0 ? s.w*s.r : s.r;
+const exVol = sets=> sets.reduce((a,s)=>a+setVol(s),0);
+
+function exHist(exId,unit){
+  const out=[];
+  sessions.forEach(s=>{const sets=s.log&&s.log[exId]; if(!sets||!sets.length) return;
+    const u=s.units&&s.units[exId]; if(unit&&u&&u!==unit) return;
+    out.push({date:s.date,vol:exVol(sets),sets,top:Math.max(...sets.map(x=>x.w))})});
+  return out;
+}
+function lastSets(exId,unit){const h=exHist(exId,unit);return h.length?h[h.length-1].sets:null}
+function exName(id){if(EX_INDEX[id])return EX_INDEX[id].name;for(let i=sessions.length-1;i>=0;i--){const n=sessions[i].names&&sessions[i].names[id];if(n)return n}return id}
+function exUnitNow(id){if(EX_INDEX[id])return unitOf(EX_INDEX[id]);for(let i=sessions.length-1;i>=0;i--){const u=sessions[i].units&&sessions[i].units[id];if(u)return u}return "kg"}
+
+/* Ofensiva: dias de descanso não quebram, desde que não passem de 2 seguidos (até 3 dias entre treinos). */
+const MAX_GAP = 3;
+function streakInfo(){
+  const days=[...new Set(sessions.map(s=>s.date.slice(0,10)))].sort();
+  const today=dayStr(new Date());
+  if(!days.length) return {days:0,alive:false,workouts:0,set:new Set()};
+  const last=days[days.length-1];
+  const alive = daysBetween(last,today)<=MAX_GAP;
+  let start=last, count=1;
+  for(let i=days.length-2;i>=0;i--){ if(daysBetween(days[i],days[i+1])<=MAX_GAP){start=days[i];count++} else break }
+  return {days: alive ? daysBetween(start,today)+1 : 0, workouts: alive?count:0, alive, trainedToday:last===today, set:new Set(days), last};
+}
+function nextDay(){
+  if(!sessions.length) return "A";
+  const l=sessions[sessions.length-1].day;
+  return ORDER[(ORDER.indexOf(l)+1)%4];
+}
+
+/* ============ UI BASE ============ */
+const $ = s=>document.querySelector(s);
+const view = $("#view");
+const esc = s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let fid=0;
+const flameSVG = (cls="",style="")=>{const id="fg"+(++fid);return `<svg class="${cls}" style="${style}" viewBox="0 0 40 48" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#e8317a"/><stop offset=".5" stop-color="#ff5a36"/><stop offset="1" stop-color="#ffb020"/></linearGradient></defs><path fill="url(#${id})" d="M20 2c2 8 12 13 12 26a12 12 0 0 1-24 0c0-6 3-10 6-13 0 5 2 8 5 9-2-7 0-15 1-22z"/><path fill="#ffe08a" d="M20 30c1 3 5 5 5 10a5 5 0 0 1-10 0c0-3 2-5 3-6 0 2 1 3 2 3-1-3 0-5 0-7z"/></svg>`};
+const smallFlame = `<svg viewBox="0 0 40 48" aria-hidden="true"><path fill="#1a0d06" d="M20 2c2 8 12 13 12 26a12 12 0 0 1-24 0c0-6 3-10 6-13 0 5 2 8 5 9-2-7 0-15 1-22z"/></svg>`;
+let tab = "home";
+let toastT;
+function toast(m){let t=$(".toast");if(!t){t=document.createElement("div");t.className="toast";t.setAttribute("role","status");document.body.appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2600)}
+
+$("#tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-tab]");if(!b)return;tab=b.dataset.tab;render();window.scrollTo(0,0)});
+
+function render(){
+  const st=streakInfo();
+  $("#topStreak").innerHTML = flameSVG("",st.alive?"":"filter:grayscale(1);opacity:.5") + `<span>${st.days}</span>`;
+  document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false"));
+  $("#tabs").hidden = !!W;
+  if(W){ renderWorkout(); return }
+  if(tab==="home") renderHome(st);
+  else if(tab==="progress") renderProgress();
+  else renderPlan();
+}
+
+/* ============ HOME ============ */
+function renderHome(st){
+  const nd=nextDay(), today=new Date();
+  const monday=new Date(today); monday.setDate(today.getDate()-((today.getDay()+6)%7));
+  const labels=["S","T","Q","Q","S","S","D"];
+  let week="";
+  for(let i=0;i<7;i++){const d=new Date(monday);d.setDate(monday.getDate()+i);const ds=dayStr(d);const done=st.set.has(ds);
+    week+=`<div class="wd ${ds===dayStr(today)?"today":""}"><b>${labels[i]}</b><i class="${done?"done":""}">${done?smallFlame:""}</i></div>`}
+  const weekCount=[...st.set].filter(d=>parseDay(d)>=monday).length;
+
+  // heat: últimas 12 semanas
+  const start=new Date(monday); start.setDate(monday.getDate()-7*11);
+  let heat="";
+  for(let i=0;i<84;i++){const d=new Date(start);d.setDate(start.getDate()+i);const ds=dayStr(d);const fut=d>today;
+    heat+=`<i class="${fut?"fut":st.set.has(ds)?"on":""}" title="${ds}"></i>`}
+
+  let status;
+  if(!sessions.length) status="Faça o primeiro treino e acenda o foguinho.";
+  else if(!st.alive) status="A ofensiva apagou. Um treino hoje acende de novo.";
+  else if(st.trainedToday) status="Treino de hoje feito. Foguinho garantido.";
+  else{const left=MAX_GAP-daysBetween(st.last,dayStr(today)); status = left<=0?"Último dia para manter a ofensiva. Bora hoje!":`Descanso liberado. A ofensiva aguenta mais ${left} dia${left>1?"s":""} sem treino.`}
+
+  const p=PLAN[nd];
+  const lb=LS.get("fa.lastBackup",null), snooze=LS.get("fa.snooze",0);
+  const firstT = sessions.length ? parseDay(sessions[0].date).getTime() : Date.now();
+  const due = sessions.length>0 && (lb ? Date.now()-lb>30*864e5 : Date.now()-firstT>7*864e5) && Date.now()>snooze;
+  view.innerHTML = `
+  ${due?`<section class="card backup-due">
+    <div class="eyebrow">Backup do mês</div>
+    <b style="font-size:17px">${lb?"Já faz um mês do último backup":"Hora do primeiro backup"}</b>
+    <ol class="muted" style="margin:6px 0 12px;padding-left:20px;font-size:13px"><li>Toque em <b>Fazer backup</b> e salve o arquivo.</li><li>Abra o Farmando Aura no Claude, aba <b>Plano</b>, e toque em <b>Importar backup</b>.</li></ol>
+    <div class="row"><button class="btn primary" style="flex:1" id="bk">Fazer backup</button><button class="btn ghost" id="bklater">Depois</button></div>
+  </section>`:""}`+`
+  <section class="card">
+    <div class="streak">
+      ${flameSVG("flame-big"+(st.alive?"":" off"))}
+      <div>
+        <div class="eyebrow">Ofensiva</div>
+        <div class="big num">${st.days}<small>${st.days===1?"dia":"dias"}</small></div>
+        <div class="muted" style="font-size:13px">${status}</div>
+      </div>
+    </div>
+    <div class="week">${week}</div>
+    <div class="row between" style="margin-top:12px;font-size:13px"><span class="muted">Meta da semana</span><b class="num">${weekCount} / 4 treinos</b></div>
+  </section>
+
+  <section class="card next">
+    <div class="letter">${nd}</div>
+    <div class="eyebrow">Próximo treino · ${nd}</div>
+    <h2>${esc(p.name)}</h2>
+    <ul>${p.ex.map(e=>`<li>${esc(e.name)} <span class="num">· ${e.sets}×${e.min}–${e.max}</span></li>`).join("")}</ul>
+    <button class="btn primary block" data-start="${nd}">Iniciar treino ${nd}</button>
+  </section>
+
+  <section>
+    <div class="eyebrow" style="margin-bottom:8px">Ou escolha outro dia</div>
+    <div class="days">${ORDER.map(d=>`<button class="daybtn ${d===nd?"sug":""}" data-start="${d}"><b>${d}</b><span>${esc(PLAN[d].name).replace(" · ","<br>")}</span></button>`).join("")}</div>
+  </section>
+
+  <section class="card">
+    <div class="row between"><div class="eyebrow">Últimas 12 semanas</div><span class="muted num" style="font-size:12px">${st.set.size} dias treinados</span></div>
+    <div class="heat">${heat}</div>
+  </section>
+  `;
+  view.querySelectorAll("[data-start]").forEach(b=>b.onclick=()=>startWorkout(b.dataset.start));
+  const bk=$("#bk"); if(bk) bk.onclick=exportBackup;
+  const bl=$("#bklater"); if(bl) bl.onclick=()=>{LS.set("fa.snooze",Date.now()+3*864e5);render();toast("Lembro de novo em 3 dias.")};
+}
+
+/* ============ TREINO ============ */
+let W = LS.get("fa.workout",null);
+let restTimer=null, wakeLock=null, audioCtx=null;
+const saveW=()=>W?LS.set("fa.workout",W):LS.del("fa.workout");
+
+function startWorkout(day){
+  W={day,dayName:PLAN[day].name,ex:clone(PLAN[day].ex),exIdx:0,log:{},startedAt:new Date().toISOString(),rest:null,celebrated:{}};
+  try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)()}catch(e){}
+  requestWake(); saveW(); render(); window.scrollTo(0,0);
+}
+async function requestWake(){try{if(navigator.wakeLock)wakeLock=await navigator.wakeLock.request("screen")}catch(e){}}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&W)requestWake()});
+
+function P(){return {name:W.dayName||(PLAN[W.day]&&PLAN[W.day].name)||'',ex:W.ex||PLAN[W.day].ex}}
+function curEx(){return P().ex[W.exIdx]}
+function defaultsFor(ex,setIdx){
+  const done=W.log[ex.id]||[];
+  const prev=lastSets(ex.id,unitOf(ex));
+  if(done.length) return {w:done[done.length-1].w,r:(prev&&prev[setIdx])?prev[setIdx].r:done[done.length-1].r};
+  if(prev){const s=prev[Math.min(setIdx,prev.length-1)];let w=s.w;
+    if(prev.every(x=>x.r>=ex.max)) w=+(w+ex.step).toFixed(1);
+    return {w,r:prev.every(x=>x.r>=ex.max)?ex.min:s.r}}
+  return {w:0,r:ex.max};
+}
+
+function renderWorkout(){
+  if(W.summary) return renderSummary();
+  if(W.rest) return renderRest();
+  const p=P(), ex=curEx(), done=W.log[ex.id]||[], setIdx=done.length;
+  const u=unitOf(ex);
+  const prev=lastSets(ex.id,u);
+  const d=defaultsFor(ex,setIdx);
+  const topped = prev && prev.every(x=>x.r>=ex.max);
+  view.innerHTML=`
+  <div class="wo-head">
+    <div><div class="eyebrow">Treino ${W.day} · ${esc(p.name)}</div><div class="muted num" style="font-size:12px">Exercício ${W.exIdx+1} de ${p.ex.length}</div></div>
+    <button class="linkbtn" id="finish">Finalizar</button>
+  </div>
+  <section class="card">
+    <div class="row between" style="align-items:flex-start"><h1 class="ex-name">${esc(ex.name)}</h1>
+      <div class="seg" role="group" aria-label="Unidade da carga"><button data-unit="kg" aria-pressed="${u==="kg"}">kg</button><button data-unit="placa" aria-pressed="${u==="placa"}">placa</button></div></div>
+    <div class="setdots">${Array.from({length:ex.sets},(_,i)=>`<i class="${i<setIdx?"done":i===setIdx?"cur":""}"></i>`).join("")}</div>
+    <div class="target">
+      <div><span class="eyebrow">Série</span><b class="num">${Math.min(setIdx+1,ex.sets)} de ${ex.sets}</b></div>
+      <div><span class="eyebrow">Meta</span><b class="num">${ex.min}–${ex.max} reps</b></div>
+    </div>
+    ${prev?`<div class="last muted">Última vez: <span class="num">${prev.map(s=>`${wLabel(s.w,u)} × ${s.r}`).join(" · ")}</span></div>`:""}
+    ${topped?`<div class="tip"><b>Hora de subir.</b> Você bateu ${ex.max} reps em todas as séries. Já coloquei +${fmt(ex.step)} ${u==="placa"?"na placa":"kg"}.</div>`:""}
+  </section>
+  ${setIdx<ex.sets?`
+  <div class="steppers">
+    <div class="stepper"><label for="w">${u==="placa"?"Placa (nº)":"Carga (kg)"}</label><div class="ctl"><button data-adj="w" data-v="-${ex.step}" aria-label="Diminuir carga">−</button><input id="w" inputmode="decimal" value="${fmt(d.w)}"><button data-adj="w" data-v="${ex.step}" aria-label="Aumentar carga">+</button></div></div>
+    <div class="stepper"><label for="r">Repetições</label><div class="ctl"><button data-adj="r" data-v="-1" aria-label="Menos reps">−</button><input id="r" inputmode="numeric" value="${d.r}"><button data-adj="r" data-v="1" aria-label="Mais reps">+</button></div></div>
+  </div>
+  <button class="btn primary block" id="logSet">Registrar série ${setIdx+1}</button>`:
+  `<button class="btn primary block" id="nextEx">${W.exIdx<p.ex.length-1?"Próximo exercício":"Ver resumo do treino"}</button>`}
+  ${done.length?`<div class="logged">${done.map((s,i)=>`<span class="num">S${i+1}: ${wLabel(s.w,u)} × ${s.r}</span>`).join("")}<button class="linkbtn" id="undo">Desfazer última</button></div>`:""}
+  <div class="row between">
+    <button class="linkbtn" id="skip">${W.exIdx<p.ex.length-1?"Pular exercício":""}</button>
+    <span class="muted num" style="font-size:12px">Descanso: ${ex.rest>=60?Math.floor(ex.rest/60)+"min"+(ex.rest%60?" "+ex.rest%60+"s":""):ex.rest+"s"}</span>
+  </div>`;
+  view.querySelectorAll("[data-unit]").forEach(b=>b.onclick=()=>{const nu=b.dataset.unit;if(nu===u)return;ex.unit=nu;if(nu==="placa"&&ex.step>2)ex.step=1;if(nu==="kg"&&ex.step<2)ex.step=2.5;
+    ORDER.forEach(dd=>PLAN[dd].ex.forEach(e=>{if(e.id===ex.id){e.unit=nu;e.step=ex.step}}));savePlan();saveW();render();toast(nu==="placa"?"Agora esse exercício é registrado pelo número da placa.":"Agora esse exercício é registrado em kg.")});
+  view.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{W.exIdx=+b.dataset.go;saveW();render()});
+  view.querySelectorAll("[data-adj]").forEach(b=>b.onclick=()=>{const inp=$("#"+b.dataset.adj);let v=parseFloat(String(inp.value).replace(",","."))||0;v=Math.max(0,+(v+parseFloat(b.dataset.v)).toFixed(2));inp.value=b.dataset.adj==="w"?fmt(v):Math.round(v)});
+  const ls=$("#logSet"); if(ls) ls.onclick=logSet;
+  const ne=$("#nextEx"); if(ne) ne.onclick=advance;
+  const un=$("#undo"); if(un) un.onclick=()=>{W.log[ex.id].pop();saveW();render()};
+  const sk=$("#skip"); if(sk) sk.onclick=()=>{if(W.exIdx<p.ex.length-1){W.exIdx++;saveW();render()}};
+  $("#finish").onclick=()=>{W.summary=true;W.rest=null;saveW();render()};
+}
+
+function logSet(){
+  const ex=curEx();
+  const w=Math.max(0,parseFloat(String($("#w").value).replace(",","."))||0);
+  const r=Math.max(0,parseInt($("#r").value)||0);
+  if(r<=0){toast("Coloque quantas repetições você fez.");return}
+  const btnR=$("#logSet")?$("#logSet").getBoundingClientRect():null;
+  const prevSets=lastSets(ex.id,unitOf(ex)), si=(W.log[ex.id]||[]).length;
+  const pv=prevSets&&prevSets[si]?setVol(prevSets[si]):null, nv=setVol({w,r});
+  (W.log[ex.id]=W.log[ex.id]||[]).push({w,r});
+  const beat=pv!==null&&nv>pv;
+  if(beat){const lb=$("#logSet");if(lb){lb.disabled=true;lb.classList.add("hit")}burstAt(btnR,`+${fmt(nv-pv)} ${volUnit(unitOf(ex))}`)}
+  const done=W.log[ex.id].length;
+  const isLastSet = done>=ex.sets;
+  const isLastEx = W.exIdx>=P().ex.length-1;
+  saveW();
+  const cont=()=>{
+  if(isLastSet){
+    const h=exHist(ex.id,unitOf(ex)), prevVol=h.length?h[h.length-1].vol:null, now=exVol(W.log[ex.id]);
+    const after=()=>{ if(isLastEx){W.summary=true;saveW();render()} else {startRest(ex.rest,true)} };
+    if(prevVol!==null && now>prevVol && !W.celebrated[ex.id]){W.celebrated[ex.id]=true;saveW();celebrate(ex,h,now,prevVol,after)}
+    else after();
+  } else startRest(ex.rest,false);
+  };
+  if(beat) setTimeout(cont,reduce?300:900); else cont();
+}
+function advance(){const p=P();if(W.exIdx<p.ex.length-1){W.exIdx++;saveW();render()}else{W.summary=true;saveW();render()}}
+
+function startRest(sec,thenNext){W.rest={end:Date.now()+sec*1000,total:sec,thenNext,beeped:false};saveW();render()}
+function renderRest(){
+  const ex=curEx(), p=P();
+  const nextName = W.rest.thenNext ? p.ex[W.exIdx+1]?.name : ex.name;
+  const nextLabel = W.rest.thenNext ? "Próximo exercício" : `Próxima: série ${(W.log[ex.id]||[]).length+1} de ${ex.sets}`;
+  const C=2*Math.PI*88;
+  view.innerHTML=`
+  <div class="rest">
+    <div class="eyebrow">Descanso</div>
+    <div class="ring" id="ring"><svg viewBox="0 0 200 200"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb020"/><stop offset=".55" stop-color="#ff5a36"/><stop offset="1" stop-color="#e8317a"/></linearGradient></defs>
+      <circle cx="100" cy="100" r="88" fill="none" stroke="#272b33" stroke-width="14"/>
+      <circle id="arc" cx="100" cy="100" r="88" fill="none" stroke="url(#rg)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="0"/></svg>
+      <div class="t num" id="tleft">0:00</div></div>
+    <div><div class="muted" style="font-size:13px">${nextLabel}</div><div style="font-weight:800;font-size:18px">${esc(nextName||"")}</div></div>
+    <div class="acts"><button class="btn ghost" id="m15">−15s</button><button class="btn ghost" id="p15">+15s</button><button class="btn primary" id="go">Bora</button></div>
+  </div>`;
+  const tick=()=>{
+    if(!W||!W.rest){clearInterval(restTimer);return}
+    const left=Math.max(0,Math.round((W.rest.end-Date.now())/1000));
+    const el=$("#tleft"); if(!el){clearInterval(restTimer);return}
+    el.textContent= left>0?`${Math.floor(left/60)}:${pad(left%60)}`:"Bora!";
+    $("#arc").setAttribute("stroke-dashoffset", C*(1-left/W.rest.total));
+    $("#ring").classList.toggle("go",left===0);
+    if(left===0 && !W.rest.beeped){W.rest.beeped=true;saveW();beep()}
+  };
+  clearInterval(restTimer); tick(); restTimer=setInterval(tick,250);
+  $("#m15").onclick=()=>{W.rest.end-=15000;W.rest.beeped=false;saveW();tick()};
+  $("#p15").onclick=()=>{W.rest.end+=15000;W.rest.total+=15;W.rest.beeped=false;saveW();tick()};
+  $("#go").onclick=endRest;
+}
+function endRest(){clearInterval(restTimer);const n=W.rest.thenNext;W.rest=null;if(n)W.exIdx=Math.min(W.exIdx+1,P().ex.length-1);saveW();render();window.scrollTo(0,0)}
+function beep(){
+  try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+  try{if(!audioCtx)return;const t=audioCtx.currentTime;[0,.22,.44].forEach((o,i)=>{const g=audioCtx.createGain(),os=audioCtx.createOscillator();os.frequency.value=i===2?1175:880;g.gain.setValueAtTime(.0001,t+o);g.gain.exponentialRampToValueAtTime(.3,t+o+.02);g.gain.exponentialRampToValueAtTime(.0001,t+o+.18);os.connect(g).connect(audioCtx.destination);os.start(t+o);os.stop(t+o+.2)})}catch(e){}
+}
+
+function renderSummary(){
+  const p=P();
+  const rows=p.ex.filter(e=>(W.log[e.id]||[]).length).map(e=>{
+    const u=unitOf(e); const now=exVol(W.log[e.id]); const h=exHist(e.id,u); const prev=h.length?h[h.length-1].vol:null;
+    let tag = prev===null?`<span class="muted">primeiro registro</span>`: now>prev?`<span class="up">+${fmt(now-prev)}</span>`:now===prev?`<span class="down">igual</span>`:`<span class="down">${fmt(now-prev)}</span>`;
+    return {e,now,prev,tag,u};
+  });
+  const total=rows.filter(r=>r.u==="kg").reduce((a,r)=>a+r.now,0);
+  const ups=rows.filter(r=>r.prev!==null&&r.now>r.prev).length;
+  const mins=Math.round((Date.now()-new Date(W.startedAt))/60000);
+  view.innerHTML=`
+  <div class="eyebrow">Resumo · Treino ${W.day}</div>
+  <section class="card">
+    <div class="stats">
+      <div><b class="num">${fmt(total)}</b><span>kg de volume${rows.some(r=>r.u==="placa")?"*":""}</span></div>
+      <div><b class="num">${ups}</b><span>exercícios subiram</span></div>
+      <div><b class="num">${mins}</b><span>minutos</span></div>
+    </div>
+  </section>
+  <section class="card">
+    ${rows.length?rows.map(r=>`<div class="sum-row"><div><b>${esc(r.e.name)}</b><div class="muted num" style="font-size:12px">${(W.log[r.e.id]).map(s=>`${wLabel(s.w,r.u)}×${s.r}`).join(" · ")} = ${fmt(r.now)} ${volUnit(r.u)}</div></div><div class="num">${r.tag}</div></div>`).join(""):`<div class="empty"><b>Nenhuma série registrada</b>Volte e registre pelo menos uma série para salvar.</div>`}
+  </section>
+  ${rows.some(r=>r.u==="placa")?`<p class="note">*Exercícios em placa ficam fora do total em kg. O volume deles é contado em pontos (nº da placa × reps).</p>`:""}
+  ${rows.length?`<button class="btn primary block" id="save">Salvar e acender o foguinho</button>`:""}
+  <button class="btn ghost block" id="back">Voltar ao treino</button>
+  <button class="linkbtn" id="discard" style="align-self:center">Descartar treino</button>`;
+  const sv=$("#save"); if(sv) sv.onclick=async()=>{
+    const before=streakInfo();
+    const s={kind:"session",id:"s-"+Date.now(),date:dayStr(new Date())+"T"+new Date().toTimeString().slice(0,5),day:W.day,log:W.log,minutes:mins,names:Object.fromEntries(P().ex.map(e=>[e.id,e.name])),units:Object.fromEntries(P().ex.map(e=>[e.id,unitOf(e)]))};
+    W=null;saveW();releaseWake();
+    await saveSession(s);
+    const after=streakInfo();
+    tab="home";render();window.scrollTo(0,0);
+    if(after.days>before.days || !before.alive) streakPop(after.days); else toast("Treino salvo.");
+  };
+  $("#back").onclick=()=>{W.summary=false;saveW();render()};
+  let armed=false;
+  $("#discard").onclick=e=>{if(!armed){armed=true;e.target.textContent="Toque de novo para descartar";setTimeout(()=>{armed=false;if(e.target.isConnected)e.target.textContent="Descartar treino"},3000);return}W=null;saveW();releaseWake();render()};
+}
+function releaseWake(){try{wakeLock&&wakeLock.release()}catch(e){}wakeLock=null}
+
+/* ============ COMEMORAÇÃO ============ */
+const reduce = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+function pickMessage(){
+  let bag=LS.get("fa.bag",[]);
+  if(!bag.length){bag=MESSAGES.map((_,i)=>i).sort(()=>Math.random()-.5)}
+  const i=bag.pop(); LS.set("fa.bag",bag); return MESSAGES[i];
+}
+function celebrate(ex,hist,now,prev,done){
+  const pts=hist.slice(-6).map(h=>h.vol).concat([now]);
+  const pct=Math.round((now-prev)/prev*100);
+  const ov=document.createElement("div"); ov.className="celebrate"; ov.setAttribute("role","dialog"); ov.setAttribute("aria-label","Volume subiu");
+  ov.innerHTML=`<div class="box anim">
+    <div class="eyebrow">${esc(ex.name)} · volume subiu</div>
+    <div class="msg pop">${esc(pickMessage())}</div>
+    <div class="delta num">+${fmt(now-prev)} ${volUnit(unitOf(ex))}${pct>0?` (+${pct}%)`:""}</div>
+    <canvas class="chart"></canvas>
+    <div class="sub">${SUBS[Math.floor(Math.random()*SUBS.length)]}</div>
+    <button class="btn primary block" style="margin-top:16px">Continuar</button></div>`;
+  document.body.appendChild(ov);
+  const box=ov.querySelector(".box"), cv=ov.querySelector("canvas");
+  ov.querySelector("button").onclick=()=>{ov.remove();stopConfetti();done()};
+  ov.querySelector("button").focus();
+  try{navigator.vibrate&&navigator.vibrate([30,40,30,40,120])}catch(e){}
+  rocketChart(cv,pts,volUnit(unitOf(ex)),()=>{box.classList.remove("anim");void box.offsetWidth;box.classList.add("boom");confetti(cv)});
+  fanfare();
+}
+function rocketChart(cv,vals,unitTxt,onBoom){
+  const dpr=Math.min(2,window.devicePixelRatio||1), W_=cv.clientWidth, H=cv.clientHeight;
+  cv.width=W_*dpr; cv.height=H*dpr; const c=cv.getContext("2d"); c.scale(dpr,dpr);
+  const pad=22, min=Math.min(...vals)*.9, max=Math.max(...vals)*1.05;
+  const P=vals.map((v,i)=>({x:pad+(W_-pad*2)*(vals.length===1?1:i/(vals.length-1)), y:H-pad-(H-pad*2)*((v-min)/(max-min||1))}));
+  const grad=c.createLinearGradient(0,H,W_,0); grad.addColorStop(0,"#e8317a"); grad.addColorStop(.5,"#ff5a36"); grad.addColorStop(1,"#ffb020");
+  const sparks=[]; let boomed=false; const t0=performance.now(); const dur=reduce?1:1700;
+  function frame(now){
+    const t=Math.max(0,Math.min(1,(now-t0)/dur)); const e=1-Math.pow(1-t,3);
+    c.clearRect(0,0,W_,H);
+    c.strokeStyle="#343a44"; c.lineWidth=1; for(let i=0;i<4;i++){const y=pad+(H-pad*2)*i/3;c.beginPath();c.moveTo(pad,y);c.lineTo(W_-pad,y);c.stroke()}
+    const segs=P.length-1, prog=e*segs, k=Math.floor(prog), f=prog-k;
+    c.beginPath(); c.moveTo(P[0].x,P[0].y);
+    for(let i=1;i<=k;i++) c.lineTo(P[i].x,P[i].y);
+    let tip=P[Math.min(k,segs)];
+    if(k<segs){tip={x:P[k].x+(P[k+1].x-P[k].x)*f,y:P[k].y+(P[k+1].y-P[k].y)*f}; c.lineTo(tip.x,tip.y)}
+    c.lineTo(tip.x,H-pad); c.lineTo(P[0].x,H-pad); c.closePath();
+    const af=c.createLinearGradient(0,0,0,H); af.addColorStop(0,"rgba(255,90,54,.35)"); af.addColorStop(1,"rgba(255,90,54,0)"); c.fillStyle=af; c.fill();
+    c.beginPath(); c.moveTo(P[0].x,P[0].y); for(let i=1;i<=k;i++) c.lineTo(P[i].x,P[i].y); c.lineTo(tip.x,tip.y);
+    c.strokeStyle=grad; c.lineWidth=4; c.lineJoin="round"; c.lineCap="round"; c.stroke();
+    for(let i=0;i<=k && i<P.length-1;i++){c.fillStyle="#efeae3";c.beginPath();c.arc(P[i].x,P[i].y,3,0,7);c.fill()}
+    if(!boomed){
+      const prev=k>0?P[Math.min(k,segs)-1]||P[0]:P[0]; const ang=Math.atan2(tip.y-(k<segs?P[k].y:prev.y),tip.x-(k<segs?P[k].x:prev.x));
+      c.save(); c.translate(tip.x,tip.y); c.rotate(ang);
+      for(let j=0;j<3;j++){c.fillStyle=["#ffb020","#ff5a36","#e8317a"][j];c.beginPath();c.arc(-14-j*6-Math.random()*4,0,5-j,0,7);c.fill()}
+      c.fillStyle="#efeae3"; c.beginPath(); c.moveTo(14,0); c.lineTo(-8,-7); c.lineTo(-8,7); c.closePath(); c.fill();
+      c.fillStyle="#ff5a36"; c.beginPath(); c.moveTo(-8,-7); c.lineTo(-13,-11); c.lineTo(-6,-3); c.fill(); c.beginPath(); c.moveTo(-8,7); c.lineTo(-13,11); c.lineTo(-6,3); c.fill();
+      c.fillStyle="#5b6574"; c.beginPath(); c.arc(4,0,2.5,0,7); c.fill();
+      c.restore();
+    }
+    if(t>=1 && !boomed){boomed=true; const end=P[P.length-1];
+      for(let i=0;i<70;i++){const a=Math.random()*Math.PI*2,s=1+Math.random()*5;sparks.push({x:end.x,y:end.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,l:1,col:["#ffb020","#ff5a36","#e8317a","#efeae3"][i%4]})}
+      onBoom&&onBoom();}
+    if(boomed){
+      c.fillStyle="#efeae3"; c.font="700 13px Figtree,system-ui,sans-serif"; const end=P[P.length-1];
+      c.textAlign=end.x>W_-70?"right":"center"; c.fillText(fmt(vals[vals.length-1])+" "+unitTxt,Math.min(end.x,W_-4),Math.max(14,end.y-14));
+      sparks.forEach(s=>{s.x+=s.vx;s.y+=s.vy;s.vy+=.08;s.l-=.018;if(s.l>0){c.globalAlpha=s.l;c.fillStyle=s.col;c.fillRect(s.x,s.y,3,3)}}); c.globalAlpha=1;
+    }
+    if(!boomed || sparks.some(s=>s.l>0)) { if(cv.isConnected) requestAnimationFrame(frame) }
+  }
+  requestAnimationFrame(frame);
+}
+let confRAF=null;
+function confetti(){
+  if(reduce) return;
+  const cv=$("#confetti"); cv.hidden=false; const dpr=Math.min(2,devicePixelRatio||1);
+  cv.width=innerWidth*dpr; cv.height=innerHeight*dpr; const c=cv.getContext("2d"); c.setTransform(dpr,0,0,dpr,0,0);
+  const cols=["#ffb020","#ff5a36","#e8317a","#3fd28b","#efeae3"];
+  const parts=Array.from({length:140},()=>({x:innerWidth/2,y:innerHeight*.45,vx:(Math.random()-.5)*16,vy:-Math.random()*16-4,r:Math.random()*6,s:4+Math.random()*6,c:cols[Math.floor(Math.random()*5)],vr:(Math.random()-.5)*.4}));
+  const step=()=>{c.clearRect(0,0,innerWidth,innerHeight);let alive=false;
+    parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.35;p.vx*=.99;p.r+=p.vr;if(p.y<innerHeight+20)alive=true;c.save();c.translate(p.x,p.y);c.rotate(p.r);c.fillStyle=p.c;c.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);c.restore()});
+    if(alive) confRAF=requestAnimationFrame(step); else stopConfetti()};
+  cancelAnimationFrame(confRAF); step();
+}
+function stopConfetti(){cancelAnimationFrame(confRAF);const cv=$("#confetti");cv.getContext("2d").clearRect(0,0,cv.width,cv.height);cv.hidden=true}
+function fanfare(){try{if(!audioCtx)return;const t=audioCtx.currentTime;[523,659,784,1047].forEach((f,i)=>{const g=audioCtx.createGain(),o=audioCtx.createOscillator();o.type="triangle";o.frequency.value=f;g.gain.setValueAtTime(.0001,t+i*.11);g.gain.exponentialRampToValueAtTime(.22,t+i*.11+.02);g.gain.exponentialRampToValueAtTime(.0001,t+i*.11+(i===3?.6:.2));o.connect(g).connect(audioCtx.destination);o.start(t+i*.11);o.stop(t+i*.11+.7)})}catch(e){}}
+function streakPop(days){
+  const ov=document.createElement("div"); ov.className="celebrate";
+  ov.innerHTML=`<div class="box anim">${flameSVG("flame-big","width:110px;height:132px;margin:0 auto;display:block")}
+    <div class="msg pop num">${days} ${days===1?"dia":"dias"}</div><div class="sub">${days===1?"Foguinho aceso. Agora é não deixar apagar.":"Ofensiva viva. Continua assim."}</div>
+    <button class="btn primary block" style="margin-top:16px">Fechar</button></div>`;
+  document.body.appendChild(ov); ov.querySelector("button").onclick=()=>{ov.remove();stopConfetti()};
+  confetti(); fanfare();
+}
+
+/* ============ PROGRESSO ============ */
+const MUSCLES={peito:"Peito",costas:"Costas",ombros:"Ombros",biceps:"Bíceps",triceps:"Tríceps",abdomen:"Abdômen",quadriceps:"Quadríceps",posterior:"Posterior de coxa",gluteos:"Glúteos",panturrilha:"Panturrilha",outros:"Outros"};
+const MUSCLE_BY_ID={"supino-reto":"peito","remada-curvada":"costas","desenv-halter":"ombros","puxada-frontal":"costas","rosca-direta":"biceps","triceps-polia":"triceps","agachamento":"quadriceps","stiff":"posterior","leg-press":"quadriceps","mesa-flexora":"posterior","panturrilha-pe":"panturrilha","supino-inclinado-halter":"peito","remada-baixa":"costas","elevacao-lateral":"ombros","crucifixo":"peito","rosca-martelo":"biceps","triceps-frances":"triceps","bulgaro":"quadriceps","extensora":"quadriceps","flexora-sentada":"posterior","elevacao-pelvica":"gluteos","panturrilha-sentada":"panturrilha","abdominal":"abdomen"};
+function guessMuscle(name){
+  const n=(name||"").toLowerCase();
+  const R=[[/crucifixo invertido|voador invertido|face pull/,"ombros"],[/p[eé]lvica|gl[uú]te|abdu[cç]|hip thrust/,"gluteos"],[/stiff|flexora|romeno|good morning/,"posterior"],[/panturrilha|g[eê]meos|s[oó]leo/,"panturrilha"],[/abdominal|prancha|abd[oô]m|crunch/,"abdomen"],[/agach|leg press|extensora|afundo|b[uú]lgaro|hack|passada|quadr/,"quadriceps"],[/supino|crucifixo|peck|peito|flex[aã]o de bra/,"peito"],[/remada|puxada|pulldown|barra fixa|costas|pullover|serrote|terra/,"costas"],[/desenvolv|eleva[cç][aã]o lateral|eleva[cç][aã]o frontal|ombro|arnold/,"ombros"],[/rosca|b[ií]ceps/,"biceps"],[/tr[ií]ceps|franc[eê]s|testa|mergulho|coice/,"triceps"]];
+  for(const [re,m] of R) if(re.test(n)) return m;
+  return "outros";
+}
+const muscleOfEx=e=>(e&&e.muscle)||MUSCLE_BY_ID[e&&e.id]||guessMuscle(e&&e.name);
+function muscleOf(id){return EX_INDEX[id]?muscleOfEx(EX_INDEX[id]):(MUSCLE_BY_ID[id]||guessMuscle(exName(id)))}
+
+/* Anatomia baseada em react-native-body-highlighter (licença MIT).
+   MIT License, Copyright (c) 2022 ELABBASSI Hicham. Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software, to deal in the Software without restriction, subject to including this notice. THE SOFTWARE IS PROVIDED "AS IS". */
+const ANAT={"front":{"muscles":[{"m":"peito","s":"chest","p":[[272.9,422.8],[265.3,413.4],[260.1,402.5],[256.9,390.8],[255.3,378.8],[255.3,366.6],[257.0,354.6],[260.7,343.1],[268.2,333.6],[277.9,326.4],[288.9,321.1],[300.6,318.1],[312.7,317.3],[324.8,317.4],[336.9,318.9],[346.9,325.3],[353.0,335.7],[356.4,347.3],[358.2,359.3],[358.6,371.5],[358.1,383.6],[357.0,395.7],[355.5,407.7],[350.5,418.7],[341.6,426.9],[330.6,432.0],[318.8,434.5],[306.7,434.8],[294.7,432.9],[283.1,429.3]]},{"m":"peito","s":"chest","p":[[416.0,435.0],[404.0,433.7],[392.5,429.9],[382.3,423.4],[374.9,413.9],[371.9,402.2],[370.6,390.2],[369.7,378.1],[369.5,365.9],[370.4,353.9],[373.0,342.0],[377.7,330.8],[385.3,321.6],[396.8,318.2],[408.9,317.5],[421.1,317.6],[433.1,319.1],[444.5,323.2],[454.8,329.5],[463.7,337.7],[469.4,348.3],[472.0,360.2],[472.9,372.3],[472.4,384.4],[470.2,396.3],[466.1,407.7],[459.8,418.0],[450.9,426.2],[439.9,431.3],[428.1,434.1]]},{"m":"abdomen","s":"obliques","p":[[438.7,444.4],[437.9,440.7],[439.6,437.4],[442.8,435.3],[446.1,433.5],[449.4,431.5],[452.5,429.3],[455.6,427.1],[458.5,424.7],[461.4,422.2],[464.2,419.7],[467.1,417.1],[469.5,419.1],[469.4,422.9],[468.9,426.7],[467.8,430.4],[466.1,433.7],[463.3,436.2],[459.9,438.0],[456.5,439.8],[453.1,441.4],[449.6,442.8],[446.0,444.0],[442.3,444.9]]},{"m":"abdomen","s":"obliques","p":[[457.4,466.7],[453.8,464.7],[450.6,462.1],[447.6,459.4],[444.7,456.5],[441.9,453.4],[442.6,450.9],[446.5,449.5],[450.3,448.0],[454.1,446.4],[457.8,444.7],[461.5,442.9],[465.0,440.7],[467.8,437.7],[470.1,434.3],[471.9,434.4],[472.5,438.5],[471.9,442.5],[470.5,446.4],[468.9,450.2],[467.2,453.9],[465.2,457.5],[463.0,461.0],[460.5,464.3]]},{"m":"abdomen","s":"obliques","p":[[428.4,487.2],[427.6,483.2],[427.8,479.1],[428.0,475.0],[428.1,470.9],[428.2,466.8],[428.3,462.7],[428.3,458.6],[428.3,454.4],[428.2,450.3],[431.5,451.3],[434.7,453.9],[437.9,456.5],[441.0,459.2],[444.0,462.0],[447.0,464.8],[449.9,467.7],[450.6,471.4],[448.1,474.6],[445.2,477.5],[442.0,480.1],[438.7,482.6],[435.4,485.0],[432.0,487.3]]},{"m":"abdomen","s":"obliques","p":[[470.8,456.3],[471.4,459.1],[471.5,462.5],[471.4,465.8],[471.0,469.1],[470.4,472.4],[469.6,475.6],[468.6,478.7],[467.3,481.8],[465.8,484.8],[464.2,487.7],[462.3,490.4],[460.4,490.7],[459.3,487.5],[458.3,484.4],[457.5,481.1],[456.8,477.9],[456.7,474.6],[458.1,471.7],[460.2,469.1],[462.4,466.6],[464.5,464.0],[466.6,461.4],[468.7,458.9]]},{"m":"abdomen","s":"obliques","p":[[452.3,478.5],[453.9,482.1],[455.1,486.0],[456.2,489.8],[456.9,493.7],[453.9,496.4],[450.7,498.8],[447.4,501.2],[444.1,503.5],[440.8,505.8],[437.4,508.0],[434.0,510.1],[430.5,512.1],[428.3,510.3],[428.2,506.3],[428.3,502.2],[428.6,498.2],[429.2,494.2],[432.3,491.7],[435.6,489.3],[438.9,487.0],[442.2,484.7],[445.5,482.4],[448.8,480.2]]},{"m":"abdomen","s":"obliques","p":[[428.2,519.1],[432.4,516.2],[436.7,513.3],[440.9,510.3],[445.0,507.2],[449.1,504.0],[453.1,500.7],[457.0,497.3],[458.4,500.7],[458.8,505.9],[458.6,511.1],[457.6,516.1],[455.3,520.7],[451.8,524.5],[448.1,528.1],[444.3,531.6],[440.4,535.0],[436.5,538.4],[432.5,541.7],[428.4,544.8],[427.7,539.7],[427.3,534.6],[427.1,529.4],[427.3,524.2]]},{"m":"abdomen","s":"obliques","p":[[456.5,524.6],[457.1,529.8],[457.4,535.2],[457.5,540.5],[457.4,545.9],[457.1,551.3],[454.6,555.9],[451.1,560.0],[447.3,563.8],[443.2,567.2],[438.9,570.4],[434.3,573.1],[429.4,575.3],[428.3,571.1],[428.2,565.8],[428.1,560.4],[428.0,555.0],[428.9,549.8],[432.5,545.9],[436.6,542.5],[440.8,539.1],[444.9,535.7],[448.9,532.1],[452.8,528.4]]},{"m":"abdomen","s":"obliques","p":[[418.9,657.1],[420.2,647.9],[422.1,638.4],[423.1,628.8],[423.8,619.1],[424.6,609.5],[425.3,599.9],[426.0,590.2],[429.4,581.6],[437.4,576.2],[445.1,570.3],[452.3,563.8],[458.1,563.1],[459.2,572.7],[460.1,582.4],[460.7,592.0],[461.1,601.7],[461.4,611.3],[461.5,621.0],[455.2,628.3],[448.7,635.4],[442.1,642.5],[435.6,649.6],[428.1,655.7]]},{"m":"abdomen","s":"obliques","p":[[264.2,435.5],[261.6,432.8],[260.0,429.4],[259.2,425.7],[258.8,421.9],[258.8,418.1],[262.1,417.7],[264.8,420.3],[267.5,422.9],[270.4,425.4],[273.4,427.7],[276.5,429.9],[279.7,432.0],[282.9,433.9],[286.3,435.7],[289.2,438.0],[290.3,441.6],[288.8,444.8],[285.1,444.4],[281.4,443.4],[277.8,442.2],[274.3,440.8],[270.8,439.3],[267.5,437.5]]},{"m":"abdomen","s":"obliques","p":[[287.3,452.4],[284.5,455.5],[281.7,458.4],[278.7,461.3],[275.5,463.9],[272.1,466.2],[268.7,465.3],[266.0,462.1],[263.7,458.7],[261.7,455.1],[259.8,451.5],[258.1,447.7],[256.7,443.9],[255.7,439.9],[256.0,435.8],[257.4,433.1],[259.6,436.5],[262.2,439.7],[265.4,442.3],[269.1,444.1],[272.9,445.8],[276.7,447.4],[280.5,449.0],[284.3,450.5]]},{"m":"abdomen","s":"obliques","p":[[297.3,487.8],[293.8,485.7],[290.4,483.3],[287.1,480.9],[283.9,478.2],[280.9,475.4],[278.2,472.3],[277.3,468.9],[280.2,465.9],[283.2,463.1],[286.2,460.3],[289.3,457.5],[292.5,454.9],[295.7,452.2],[299.1,449.9],[300.0,453.1],[299.9,457.2],[299.9,461.3],[299.9,465.5],[300.0,469.6],[300.2,473.7],[300.5,477.9],[300.8,482.0],[300.3,486.1]]},{"m":"abdomen","s":"obliques","p":[[257.4,456.2],[259.5,458.8],[261.6,461.3],[263.7,463.9],[265.8,466.5],[267.9,469.0],[270.0,471.6],[271.5,474.5],[271.4,477.8],[270.8,481.1],[270.0,484.3],[269.0,487.5],[267.9,490.6],[266.0,490.3],[264.1,487.6],[262.4,484.7],[260.9,481.7],[259.6,478.7],[258.6,475.5],[257.8,472.3],[257.2,469.0],[256.8,465.7],[256.7,462.4],[256.8,459.0]]},{"m":"abdomen","s":"obliques","p":[[271.7,494.1],[271.9,490.3],[273.1,486.4],[274.3,482.6],[275.5,478.7],[278.8,479.7],[282.2,481.9],[285.6,484.2],[288.9,486.5],[292.2,488.8],[295.5,491.2],[298.5,493.9],[299.5,497.7],[299.8,501.8],[300.0,505.8],[299.9,509.9],[298.3,512.5],[294.8,510.4],[291.3,508.3],[287.9,506.1],[284.6,503.9],[281.3,501.5],[278.0,499.1],[274.8,496.6]]},{"m":"abdomen","s":"obliques","p":[[299.4,544.6],[295.4,541.4],[291.4,538.1],[287.5,534.7],[283.6,531.3],[279.8,527.8],[276.1,524.3],[272.7,520.4],[270.6,515.8],[269.6,510.7],[269.5,505.6],[269.9,500.5],[271.7,497.7],[275.6,501.1],[279.6,504.4],[283.7,507.5],[287.8,510.6],[292.0,513.6],[296.3,516.4],[300.1,519.7],[301.1,524.7],[301.2,529.8],[301.0,535.0],[300.5,540.1]]},{"m":"abdomen","s":"obliques","p":[[299.1,575.5],[294.3,573.1],[289.8,570.3],[285.3,567.3],[281.1,564.0],[277.2,560.4],[273.8,556.3],[271.4,551.5],[270.9,546.2],[270.8,540.8],[270.9,535.5],[271.1,530.1],[271.6,524.8],[275.3,528.3],[279.3,531.8],[283.4,535.3],[287.5,538.8],[291.6,542.2],[295.8,545.5],[299.3,549.5],[300.2,554.7],[300.1,560.1],[299.9,565.4],[299.8,570.8]]},{"m":"abdomen","s":"obliques","p":[[308.2,657.6],[299.0,655.0],[291.6,648.8],[285.1,641.6],[278.6,634.5],[272.1,627.3],[266.8,619.7],[266.9,610.0],[267.2,600.3],[267.6,590.7],[268.2,581.0],[268.9,571.4],[270.7,561.9],[276.9,564.7],[284.2,571.1],[291.9,577.0],[299.8,582.5],[302.2,591.6],[303.0,601.2],[303.8,610.8],[304.6,620.5],[305.3,630.1],[306.3,639.7],[308.5,649.1]]},{"m":"abdomen","s":"abs","p":[[311.0,531.7],[310.9,524.7],[311.5,517.5],[312.8,510.5],[316.4,504.5],[322.1,500.1],[328.2,496.5],[334.5,493.0],[340.7,489.5],[347.0,486.2],[353.6,483.3],[359.2,486.4],[360.2,493.4],[360.2,500.5],[360.1,507.7],[360.0,514.8],[360.1,522.0],[359.4,529.1],[353.8,532.6],[346.7,533.2],[339.5,533.5],[332.4,533.5],[325.2,533.2],[318.1,532.6]]},{"m":"abdomen","s":"abs","p":[[321.0,577.8],[314.1,576.4],[310.8,570.4],[309.7,563.4],[309.2,556.3],[309.6,549.2],[311.6,542.9],[318.5,541.6],[325.5,540.3],[332.4,538.7],[339.4,537.3],[346.5,536.5],[353.6,536.4],[360.2,538.0],[360.9,545.0],[361.0,552.1],[360.9,559.3],[360.7,566.3],[360.1,573.4],[356.5,578.6],[349.4,578.7],[342.3,578.7],[335.2,578.5],[328.1,578.2]]},{"m":"abdomen","s":"abs","p":[[347.7,429.2],[355.1,430.7],[358.3,438.3],[359.3,446.5],[359.8,454.7],[359.7,463.0],[358.2,471.1],[351.7,475.5],[344.6,479.9],[337.7,484.3],[330.6,488.6],[323.5,492.8],[316.3,496.8],[310.4,495.7],[308.5,487.7],[307.0,479.5],[306.1,471.3],[305.9,463.1],[307.0,454.9],[310.9,447.8],[318.0,443.6],[325.3,439.8],[332.8,436.3],[340.3,432.8]]},{"m":"abdomen","s":"abs","p":[[350.4,712.8],[340.7,705.9],[333.9,696.0],[328.9,685.1],[325.0,673.8],[321.8,662.2],[319.2,650.5],[317.0,638.7],[315.1,626.9],[313.5,615.0],[312.2,603.0],[311.2,591.1],[317.2,583.8],[329.2,583.5],[341.1,584.1],[353.1,585.5],[361.1,592.8],[361.1,604.8],[361.1,616.8],[361.1,628.8],[361.1,640.8],[361.1,652.8],[360.9,664.8],[360.7,676.8],[360.4,688.8],[359.9,700.8],[359.2,712.8]]},{"m":"abdomen","s":"abs","p":[[371.9,473.3],[368.8,466.0],[368.4,457.8],[368.8,449.5],[369.3,441.3],[371.3,433.3],[377.6,428.8],[385.3,431.6],[392.8,435.2],[400.2,438.8],[407.6,442.4],[415.0,446.1],[420.4,452.2],[421.9,460.3],[422.3,468.5],[421.5,476.7],[420.2,484.9],[418.5,492.9],[414.8,498.1],[407.4,494.3],[400.3,490.1],[393.3,485.8],[386.3,481.4],[379.2,477.2]]},{"m":"abdomen","s":"abs","p":[[382.6,533.3],[375.5,532.7],[369.1,530.0],[368.1,523.0],[368.2,515.8],[368.1,508.7],[367.9,501.6],[367.9,494.4],[368.6,487.3],[373.7,483.0],[380.2,485.8],[386.5,489.2],[392.8,492.5],[399.1,496.0],[405.3,499.5],[411.0,503.7],[415.0,509.5],[416.6,516.5],[417.4,523.6],[417.4,530.7],[411.1,532.5],[404.0,533.0],[396.8,533.4],[389.7,533.4]]},{"m":"abdomen","s":"abs","p":[[373.8,578.7],[368.6,575.3],[367.6,568.2],[367.1,561.1],[366.9,554.0],[367.0,546.9],[367.7,539.9],[372.7,536.5],[379.8,536.4],[386.9,537.0],[393.9,538.2],[400.8,539.8],[407.8,541.2],[414.8,542.5],[418.4,547.2],[418.9,554.3],[418.7,561.4],[417.9,568.5],[415.8,575.2],[409.3,577.5],[402.2,578.0],[395.1,578.3],[388.0,578.5],[380.9,578.7]]},{"m":"abdomen","s":"abs","p":[[416.3,584.7],[416.7,596.2],[415.5,608.2],[414.2,620.1],[412.5,632.0],[410.5,643.8],[408.1,655.6],[405.2,667.2],[401.7,678.7],[397.3,689.9],[391.5,700.4],[383.6,709.4],[373.0,714.9],[368.7,707.4],[368.2,695.4],[368.0,683.4],[367.8,671.4],[367.6,659.4],[367.5,647.4],[367.4,635.4],[367.3,623.4],[367.3,611.4],[367.3,599.4],[369.0,588.1],[380.5,584.8],[392.4,583.6],[404.4,583.4]]},{"m":"biceps","s":"biceps","p":[[189.5,492.5],[182.1,490.1],[181.8,481.5],[181.8,472.9],[182.2,464.4],[183.1,455.8],[184.7,447.4],[187.1,439.1],[190.6,431.3],[194.6,423.7],[199.2,416.4],[204.8,409.9],[212.3,406.2],[218.9,411.0],[221.8,419.1],[223.0,427.6],[222.5,436.2],[221.0,444.6],[218.7,452.9],[215.8,461.0],[212.5,468.9],[208.7,476.6],[204.0,483.8],[197.5,489.3]]},{"m":"biceps","s":"biceps","p":[[526.7,486.3],[521.2,479.7],[517.0,472.2],[513.6,464.3],[510.7,456.2],[508.3,448.0],[506.3,439.7],[505.4,431.1],[505.8,422.6],[507.7,414.2],[512.6,407.3],[520.7,407.8],[526.9,413.7],[531.8,420.7],[536.1,428.2],[539.8,435.9],[542.7,444.0],[544.4,452.4],[545.4,460.9],[546.0,469.5],[546.3,478.1],[546.5,486.7],[542.3,492.9],[534.0,490.8]]},{"m":"triceps","s":"triceps","p":[[206.2,514.2],[200.8,505.2],[205.3,494.3],[210.1,483.5],[214.8,472.7],[219.4,461.9],[223.8,450.9],[227.9,439.8],[231.6,428.7],[235.3,417.4],[238.0,406.0],[240.5,394.4],[244.9,386.1],[248.5,397.3],[250.9,408.8],[251.3,420.6],[248.9,432.1],[245.2,443.3],[241.4,454.5],[237.3,465.5],[232.6,476.4],[227.4,486.9],[221.7,497.2],[215.1,507.0]]},{"m":"triceps","s":"triceps","p":[[517.7,512.1],[510.3,502.9],[503.8,493.0],[498.3,482.6],[493.4,471.8],[489.1,460.8],[485.2,449.7],[481.5,438.5],[478.1,427.2],[476.9,415.5],[478.3,403.8],[481.0,392.3],[486.2,387.8],[488.7,399.3],[491.4,410.8],[494.6,422.2],[498.3,433.4],[502.2,444.5],[506.5,455.6],[510.9,466.5],[515.5,477.4],[520.2,488.2],[525.0,499.0],[527.0,510.2]]},{"m":"costas","s":"trapezius","p":[[285.0,307.0],[287.4,304.1],[291.6,301.8],[295.8,299.4],[299.9,296.8],[303.9,294.1],[307.8,291.2],[311.7,288.3],[315.4,285.2],[319.0,282.0],[323.1,279.8],[324.5,284.1],[324.7,288.9],[324.5,293.7],[324.1,298.6],[323.4,303.4],[322.2,308.1],[318.5,310.8],[313.6,311.2],[308.8,311.2],[304.0,310.9],[299.1,310.4],[294.4,309.5],[289.7,308.4]]},{"m":"costas","s":"trapezius","p":[[414.0,311.2],[409.2,310.6],[405.8,307.4],[404.7,302.7],[404.0,297.9],[403.7,293.1],[403.5,288.3],[403.7,283.4],[405.8,279.8],[409.7,282.5],[413.4,285.7],[417.1,288.7],[421.0,291.7],[424.9,294.5],[428.9,297.2],[433.0,299.8],[437.2,302.2],[441.5,304.4],[442.7,307.3],[438.0,308.6],[433.3,309.6],[428.5,310.4],[423.7,310.9],[418.8,311.2]]},{"m":"ombros","s":"deltoids","p":[[274.1,311.7],[277.1,321.1],[266.7,325.7],[256.6,330.9],[249.4,339.7],[247.8,350.9],[247.8,362.4],[245.1,373.4],[238.4,382.6],[231.2,391.4],[221.8,396.4],[212.0,390.6],[203.9,382.5],[198.0,372.8],[195.0,361.8],[195.1,350.4],[198.5,339.5],[204.7,329.9],[212.6,321.6],[221.3,314.3],[230.9,308.2],[241.7,304.2],[253.0,303.4],[264.1,306.2]]},{"m":"ombros","s":"deltoids","p":[[450.4,320.8],[454.6,311.2],[464.8,306.1],[475.9,303.5],[487.3,304.3],[498.0,308.4],[507.6,314.6],[516.2,322.1],[524.1,330.4],[530.0,340.1],[533.1,351.1],[533.0,362.5],[529.9,373.4],[524.0,383.2],[515.8,391.2],[505.8,396.7],[496.7,390.9],[489.2,382.3],[482.9,372.8],[480.2,361.7],[480.3,350.3],[478.4,339.1],[470.9,330.7],[461.0,325.0]]},{"m":"quadriceps","s":"quadriceps","p":[[292.4,935.6],[285.9,925.5],[281.5,914.1],[277.6,902.6],[274.0,891.0],[270.8,879.2],[267.7,867.4],[264.7,855.7],[261.6,843.9],[258.6,832.1],[255.7,820.3],[252.9,808.4],[250.3,796.5],[247.9,784.6],[245.8,772.6],[244.4,760.5],[244.0,748.4],[244.7,736.2],[246.3,724.1],[248.8,712.2],[252.0,700.5],[256.0,689.0],[260.8,677.8],[266.5,667.1],[269.8,678.7],[273.3,690.4],[276.9,702.0],[280.6,713.6],[284.3,725.2],[288.1,736.8],[291.7,748.4],[295.1,760.1],[298.3,771.9],[301.2,783.7],[303.7,795.6],[305.8,807.6],[307.3,819.7],[308.2,831.8],[308.6,844.0],[308.7,856.1],[308.5,868.3],[308.0,880.5],[307.1,892.6],[305.7,904.7],[303.7,916.7],[300.4,928.4]]},{"m":"quadriceps","s":"quadriceps","p":[[275.1,942.9],[269.6,932.4],[265.3,921.2],[260.5,910.1],[255.5,899.2],[251.8,887.7],[249.0,876.0],[246.9,864.2],[245.2,852.3],[244.0,840.3],[243.2,828.3],[242.4,816.3],[241.3,804.3],[243.5,793.7],[247.9,804.8],[249.9,816.6],[252.2,828.5],[254.7,840.2],[257.5,851.9],[260.6,863.6],[263.9,875.1],[267.4,886.6],[271.3,898.1],[275.3,909.4],[278.4,921.0],[279.8,932.9]]},{"m":"quadriceps","s":"quadriceps","p":[[322.7,945.7],[314.6,945.6],[309.1,937.9],[307.7,928.5],[308.4,918.9],[309.6,909.5],[310.7,900.0],[311.6,890.5],[312.3,880.9],[312.6,871.4],[312.7,861.8],[312.5,852.2],[312.1,842.7],[314.0,842.6],[317.6,851.4],[320.6,860.5],[323.0,869.7],[324.8,879.1],[325.9,888.6],[326.4,898.2],[326.3,907.7],[325.5,917.2],[324.4,926.7],[323.6,936.3]]},{"m":"quadriceps","s":"quadriceps","p":[[437.8,933.5],[429.3,931.6],[425.4,920.0],[423.0,908.1],[421.4,896.0],[420.4,883.8],[419.7,871.7],[419.4,859.5],[419.5,847.3],[419.9,835.1],[420.7,823.0],[422.0,810.8],[423.8,798.8],[426.1,786.8],[428.9,774.9],[432.0,763.2],[435.4,751.5],[439.0,739.8],[442.8,728.2],[446.6,716.6],[450.3,705.0],[454.0,693.4],[457.5,681.7],[460.8,670.0],[465.9,674.8],[470.9,685.9],[475.2,697.3],[478.6,709.0],[481.2,720.9],[483.0,733.0],[483.9,745.1],[483.8,757.3],[482.9,769.5],[481.0,781.5],[478.7,793.5],[476.1,805.4],[473.2,817.2],[470.2,829.0],[467.2,840.9],[464.3,852.7],[461.3,864.5],[458.3,876.3],[455.1,888.1],[451.6,899.7],[447.7,911.3],[443.5,922.7]]},{"m":"quadriceps","s":"quadriceps","p":[[451.8,942.6],[448.4,931.4],[450.1,919.5],[453.4,907.9],[457.4,896.5],[461.4,885.1],[464.9,873.6],[468.1,862.0],[471.1,850.3],[473.8,838.6],[476.3,826.8],[478.6,815.0],[480.8,803.2],[486.3,793.7],[486.7,805.7],[485.8,817.7],[484.9,829.7],[483.9,841.7],[482.6,853.7],[480.9,865.6],[478.8,877.4],[476.1,889.2],[472.2,900.6],[467.0,911.4],[462.4,922.5],[458.4,933.9]]},{"m":"quadriceps","s":"quadriceps","p":[[406.7,946.8],[404.7,937.7],[404.2,928.2],[403.0,918.7],[402.1,909.2],[401.8,899.6],[402.2,890.0],[403.3,880.5],[405.0,871.1],[407.3,861.8],[410.2,852.7],[413.6,843.8],[416.1,840.8],[415.7,850.3],[415.5,859.9],[415.5,869.5],[415.8,879.0],[416.5,888.6],[417.4,898.1],[418.5,907.6],[419.5,917.2],[420.6,926.7],[419.7,936.2],[415.0,944.4]]},{"m":"panturrilha","s":"calves","p":[[252.1,1032.6],[253.4,1020.6],[256.2,1009.0],[257.8,1018.1],[257.0,1030.1],[256.6,1042.1],[256.4,1054.1],[256.3,1066.1],[256.7,1078.1],[258.2,1090.0],[260.0,1101.9],[262.1,1113.7],[264.3,1125.5],[266.7,1137.3],[269.4,1149.0],[272.2,1160.7],[275.0,1172.4],[277.7,1184.1],[280.1,1195.8],[281.1,1207.8],[279.0,1219.6],[274.1,1230.4],[271.3,1222.7],[271.2,1210.7],[268.7,1199.0],[265.9,1187.3],[263.2,1175.6],[260.5,1163.9],[257.9,1152.2],[255.4,1140.4],[253.7,1128.5],[252.6,1116.6],[251.8,1104.6],[251.2,1092.6],[250.9,1080.6],[250.8,1068.6],[251.0,1056.6],[251.4,1044.6]]},{"m":"panturrilha","s":"calves","p":[[315.0,1025.2],[317.2,1036.8],[319.1,1049.0],[320.9,1061.1],[322.4,1073.3],[323.5,1085.6],[324.0,1097.8],[323.5,1110.1],[320.8,1122.1],[316.7,1133.7],[313.2,1145.4],[310.3,1157.4],[307.5,1169.4],[304.1,1181.2],[301.8,1179.9],[300.9,1167.6],[300.0,1155.4],[298.9,1143.1],[297.8,1130.9],[296.7,1118.6],[295.6,1106.4],[294.5,1094.1],[293.5,1081.9],[294.5,1069.7],[298.8,1058.2],[304.4,1047.3],[310.1,1036.4]]},{"m":"panturrilha","s":"calves","p":[[455.5,1231.7],[449.6,1221.4],[447.3,1209.6],[447.6,1197.6],[449.9,1185.8],[452.6,1174.1],[455.5,1162.5],[458.4,1150.8],[461.1,1139.1],[463.5,1127.3],[465.8,1115.5],[467.9,1103.7],[469.8,1091.9],[471.4,1079.9],[472.1,1068.0],[472.2,1055.9],[471.8,1043.9],[471.3,1031.9],[470.7,1019.9],[470.6,1008.2],[474.4,1019.0],[476.2,1030.8],[476.8,1042.8],[477.1,1054.8],[477.3,1066.9],[477.3,1078.9],[477.0,1090.9],[476.6,1102.9],[475.9,1114.9],[474.8,1126.8],[473.1,1138.7],[470.8,1150.5],[468.1,1162.2],[465.4,1173.9],[462.6,1185.6],[459.9,1197.3],[457.2,1209.0],[456.7,1221.0]]},{"m":"panturrilha","s":"calves","p":[[412.8,1025.4],[418.0,1036.2],[423.6,1047.1],[429.2,1058.0],[433.7,1069.4],[434.6,1081.6],[433.8,1093.8],[432.8,1106.0],[431.8,1118.3],[430.7,1130.5],[429.6,1142.7],[428.5,1154.9],[427.4,1167.1],[426.4,1179.3],[424.0,1181.6],[421.0,1169.7],[418.0,1157.8],[414.9,1145.9],[411.4,1134.2],[407.3,1122.6],[404.7,1110.7],[404.0,1098.4],[404.5,1086.2],[405.7,1074.0],[407.4,1061.8],[409.2,1049.7],[411.0,1037.6]]}],"neutral":["M362.65 290.52q-1.14-1.37-1.86-3.41-5.33-15.15-12.14-29.75c-2.37-5.06-1.07-9.07-7.92-10.99q-1.01-.28.02-.47c5.98-1.08 15.25.91 21.33 2q2.37.42 4.81-.09 10.09-2.13 20.45-2.12a.37.37 0 01.08.73c-6.34 1.46-5.45 5.64-7.57 10.21q-6.1 13.1-11 26.69-1.3 3.62-2.9 6.81a1.99 1.99 0 01-3.3.39z","M354.01 315.07q-3.49-3.65-5.9-8.23c-6.46-12.3-11.03-25.42-16.12-38.77-2.92-7.66-1.98-19.44-1.61-27.6q.03-.58.47-.21c9.06 7.39 11.33 17.46 15.67 27.62 5.4 12.61 15.4 33.31 9.11 46.92a1 .99 35.5 01-1.62.27z","M345.77 316c-4.12-1.96-12.78-6.76-15.07-11.38-4.29-8.65-2.69-16.02-2.28-25.25a1 1 0 011.95-.28c4.29 12.42 10.5 24.4 15.71 36.61q.23.55-.31.3z","M372.75 314.71c-5.78-9.67 1.71-31.17 6.17-40.68 5.95-12.68 8.21-24.68 18.35-33.9a.49.49 0 01.82.35c.28 8.68.84 19.39-1.97 27.72-5.26 15.58-11.39 33.46-21.42 46.62a1.18 1.18 0 01-1.95-.11z","M398.01 278.49a.5.49 35.5 01.87-.14c2.01 2.7 1.62 11.6 1.61 15.13-.04 12.42-8.2 17.45-17.9 22.58a.35.35 0 01-.48-.46c5.51-12.02 11.85-24.46 15.9-37.11z","M280.26 647.4c11.65 10.74 22.18 21.04 31.02 34.3 15.82 23.72 27.55 49.72 34.01 77.58 1.34 5.79-6.14 20.34-12.62 20.22q-.52-.01-.72-.49-.67-1.59-1.21-3.13c-14.68-41.71-27.96-79.71-46.87-117.01-1.9-3.74-3.05-7.33-4.06-11.2a.27.27 0 01.45-.27z","M331.64 898.32q-.17.57-.23-.02c-2.23-25.01-8.47-50.09-14.25-74.53q-19.4-82.1-42.46-163.69-.58-2.08.33-.13c19.88 42.53 38.94 86.51 51.64 132.07 9.49 34.06 15.59 71.67 4.97 106.3z","M334.46 789.17c1.56-2.63 14.39-20.38 16.2-20.37a1.71 1.7-89.2 011.7 1.76q-1.12 34.88-7.4 68.95c-.38 2.06-1.41 4.27-2.16 6.23q-.24.62-.34-.04-3.68-25.45-8.44-50.7c-.34-1.79-.63-4 .44-5.83z","M395.47 779.4c-5.7 1.33-11.34-11.87-12.46-15.86q-.61-2.18-.02-4.65 10.17-42.64 35.06-78.81c9.47-13.77 18.83-22.36 29.85-32.56q.55-.5.4.22-1.12 5.7-3.73 10.83c-19.44 38.38-33.3 79.2-47.77 119.65a1.84 1.83-86.4 01-1.33 1.18z","M453.65 658.99q.67-1.43.23.09-26.73 93.75-48.63 189.74c-1.98 8.7-3.66 17.9-5.44 26.84q-2.19 11.05-2.78 22.43a.15.15 0 01-.3.04c-8.18-24.48-6.74-51.98-1.87-76.86 11.07-56.49 34.44-110.42 58.79-162.28z","M377.91 768.67c1.49.84 1.76 1.49 2.66 2.66q6.16 8.04 12.23 16.13c1.88 2.52 1.97 4.18 1.38 7.45q-4.57 25.23-8.43 50.57-.11.71-.4.05-1.89-4.29-2.54-8.09-5.57-32.28-6.98-65.01-.09-2 .81-3.44a.95.94 30.8 011.27-.32z","M297.69 1008.37c-7.27 7.29-16.34 3.42-19.64-5.18q-6.18-16.11-9.57-30.68c-1.99-8.6-2.24-19.68 9.72-19.91q13.12-.24 26.05 2.15 1.71.32 3.29 1.02a1.17 1.15 4.2 01.63.72c3.17 10.27 2.5 23.36.05 33.69q-2.37 10.01-10.53 18.19z","M288.03 1059.54c-6.99-5.81 13.75-46.43 17.3-53.91q7.3-15.38 10.9-32.01c.74-3.42 2-6.31 4.18-8.64a1.36 1.35 54.7 012.23.39c3.97 9.09 1.66 13.86-1.67 24.65q-10.23 33.19-27.2 63.57-1.8 3.23-4.2 5.84a1.13 1.12-49 01-1.54.11z","M430.44 1008.31c-12.92-12.62-14.34-33.49-10.92-50.31.31-1.53 1.09-2.53 2.73-2.86q11.44-2.25 23.08-2.59c14.13-.42 17.31 5.67 14.54 18.63q-3.13 14.69-9.12 30.37c-3.45 9.03-11.63 15.25-20.31 6.76z","M438.96 1059.52q-2.25-1.89-3.8-4.64-20.15-35.92-31.06-75.66-2.11-7.68 1.95-14.16a1.16 1.16 0 011.91-.08c2.26 3.06 3.4 5.4 4.26 9.37 3.98 18.54 10.94 32.53 20.07 51.09 3.51 7.14 11.38 26.16 8.5 33.61a1.16 1.16 0 01-1.83.47z","M263.52 973.59a.6.6 0 011.09-.14q1.38 2.22 1.83 5.06c7.87 49.97 18.01 99.59 25 149.68q4.63 33.19 4.31 67.55-.04 3.45-2.15 5.76-.4.44-.75-.03-1.89-2.58-3.08-5.51c-11.63-28.6-20.46-58.12-24.26-88.68q-4.96-39.97-5.72-69.53c-.13-5.27-.17-12.59.35-18.98q1.7-20.77 2.52-41.6c.04-1.16.52-2.43.86-3.58z","M463.39 973.68a.7.7 0 011.25-.1c.27.46.64 1.34.68 1.93q1.26 20.88 2.53 41.76.66 10.82.39 19.98-1.23 40.77-7.51 82.25c-3.91 25.87-12.19 51.55-21.96 75.76q-1.13 2.79-3.27 6.13-.29.44-.71.12c-2.68-2.06-2.32-6.7-2.29-10.32.26-31.03 2.71-55.52 8.76-91.4q9.27-55.06 18.94-110.05c.8-4.5.99-10.52 3.19-16.06z","M127.23 683.05c-4.07-2.12 1.27-27.07 2.25-31.57 4.98-23.03 9.17-46.17 13.91-69.25q1.53-7.47 2.13-15.13c.93-12.09.81-22.15 6.23-31.59 7.1-12.33 13.54-29.16 26.1-36.73a1.98 1.97 62.7 012.84.91c1.92 4.48 1.93 8.28 2.06 14.15.44 19.77-1.3 41.04-8.72 59.67-11 27.62-22.22 55.21-32.62 82.91-4.04 10.76-7.56 20.66-12.82 26.39q-.59.65-1.36.24z","M201.5 527.4a.84.84 0 01.67.65c3.98 17.15-2.93 39.36-10.95 54.41-4.6 8.63-13.06 20.43-18.21 31.33q-13.21 27.92-24.58 56.64-2.51 6.35-6.61 11.02a1.43 1.43 0 01-2.5-.81q-.36-3.78.84-7.17 10.31-29.18 21.57-57.99c6.32-16.18 14.55-31.65 20.66-47.87 3.69-9.82 5.36-22.36 7.32-30.62 1.49-6.27 4.19-11.06 11.79-9.59z","M207.33 540.4a.6.59-63.1 011.03-.34l5.38 6.02q.4.45.33 1.06-.52 4.1-1.29 5.84-6.91 15.65-13.69 31.35c-5.41 12.53-16.33 28.4-23.51 44.89-8.3 19.08-16.03 39.32-26.75 57.16a.36.36 0 01-.62 0l-.19-.32q-.17-.28-.06-.59 10.08-29.91 23.05-58.65 2.9-6.42 5.47-11.21c4.62-8.59 10.86-16.17 14.62-23.02q13.23-24.13 16.23-52.19z","M600.08 683.04c-5-4.14-8.97-15.46-11.29-21.56-5.82-15.25-11.38-30.55-17.58-45.7q-9.15-22.39-18.02-44.89c-5.58-14.19-7.32-31.42-7.99-46.57-.29-6.44-.68-19.43 2.67-25.02a1.71 1.71 0 012.25-.63c6.72 3.52 11.29 9.96 14.87 16.5q6.25 11.38 12.68 22.66c1.97 3.45 2.93 7.66 3.41 12.06 1.16 10.6 1.55 21.29 3.66 31.65 3.93 19.29 7.38 38.63 11.47 57.92 1.5 7.07 9.3 39.08 5.12 43.5a.91.91 0 01-1.25.08z","M586.58 681.46q-4.35-4.47-6.75-10.61-11.35-28.91-24.59-57.01c-5.72-12.13-14.32-22.86-19.97-35.1-7.1-15.36-12.9-33.32-9.27-50.31a1.44 1.43-87.1 011.23-1.12c7.47-.88 9.29 2.88 11.02 9.2 3.39 12.42 4.76 25.91 9.75 36.7 15.55 33.65 27.61 64.94 39.31 98.42 1.13 3.24 2.05 5.47 1.62 9.04a1.38 1.37 26.3 01-2.35.79z","M579.58 686.43q-3.92-5.77-6.87-12.13-8.05-17.34-19.75-44.5-2.68-6.24-6.46-13.62c-5.14-10.05-13.15-22.36-17.34-31.85q-9.55-21.68-13.66-31.36-1.09-2.58-1.33-5.87-.04-.61.37-1.07l5.24-5.85a.69.69 0 011.2.4q2.74 27.05 15.49 50.75 1.7 3.17 8.26 12.86 7.02 10.39 12.18 21.88 8.71 19.41 20.19 50.1 2.22 5.92 3.13 9.98a.36.36 0 01-.65.28z","M100.98 745.85c-9.03-6.62-15.78-13.18-13.3-24.59 2.67-12.29 15.01-20.6 25.37-26.21 7.76-4.21 18.22-1.68 26.15.97 7.14 2.39 11.11 6.16 11.1 13.86q-.04 18.51-4.75 36.37c-5.47 20.76-34.48 6.99-44.57-.4z","M53.81 746.32a.91.91 0 01-.74-.95c.14-2.49-.23-6.34 2.25-7.8 4.66-2.71 11.37-5.53 14.15-10.3q6.32-10.86 16.56-20.3 1.27-1.17.64.44c-1.45 3.73-2.86 7.21-3.87 11.59-2.76 11.9-14.62 30-28.99 27.32z","M87.21 745.05c1.44.46 8.14 2.66 8.61 4.55 1.26 5.12-4.42 8.54-7 12.25-7.73 11.1-15.12 23.38-24.25 33.28a1.22 1.22 0 01-2.11-.86c.11-3.93.38-7.1 2.43-10.65q10.27-17.71 19.31-36.11.32-.65 2.13-2.27.38-.35.88-.19z","M108.11 758.12a2.16 2.16 0 011.07 2.87q-10.49 22.55-19.92 45.81c-1.45 3.56-4.37 5.15-7.82 6.04a1.35 1.34-8.1 01-1.69-1.26c-.11-3.05.37-5.87 1.58-8.9q8.1-20.28 15.15-40.96c.41-1.2.62-3.33 1.69-4.85a1.21 1.21 0 01.91-.49q4.72-.21 9.03 1.74z","M134.09 799.9q-1.16-1.7-1.41-3.73-2.1-17.07-1.18-34.29.03-.6.61-.75l6.93-1.85q.68-.19.65.52-.51 10.9-.85 21.71c-.28 8.58.1 12.65-4.17 18.4a.36.36 0 01-.58-.01z","M108.13 814.65a1.48 1.48 0 01-1.62-1.47c-.02-2.83-.14-5.66.32-8.53q2.9-17.79 5.4-35.65.53-3.84 1.58-7.56a.66.66 0 01.76-.48l7.26 1.24a.97.97 0 01.78 1.14q-4.76 23.96-9.1 46.26-.9 4.64-5.38 5.05z","M591.31 755.99c-8.06-2.93-8.66-9.76-10.28-17.06q-3.22-14.42-3.1-29.3.04-4.06 1.46-6.55c4.34-7.57 18.16-9.91 25.63-10.35 8.75-.51 18.37 6.96 24.99 12.27q8.92 7.17 10.74 17.52c2.45 13.89-12.11 23.41-22.7 29.04-6.95 3.69-18.63 7.39-26.74 4.43z","M641.97 706.78q10.85 9.65 17.61 21.91c1.63 2.97 9.74 6.76 12.87 8.59 2.9 1.7 3.03 4.81 2.55 8.5q-.06.42-.48.49c-8.16 1.32-11.99-1.93-17.72-7.23-10.35-9.58-10.5-20.33-15.33-31.9q-.54-1.29.5-.36z","M638 760.07c-2.54-3.42-7.52-6.03-5.44-11.11q.18-.44.61-.63l7.41-3.3q1.29-.58 2.05.62 3.33 5.23 5.69 10.04 6.84 13.94 14.71 27.33c1.35 2.29 4.28 10.16 2.25 12.11a1.22 1.22 0 01-1.77-.08c-9.43-10.98-16.85-23.36-25.51-34.98z","M647.83 812.68c-4 .24-7.71-2.87-9.11-6.38q-9.28-23.27-19.74-45.33a2.05 2.05 0 01.92-2.71q4.5-2.28 9.62-1.7a1.09 1.07 83.8 01.89.73q7.5 23.06 16.57 45.5 1.8 4.46 1.5 9.24a.7.7 0 01-.65.65z","M596.17 761.18a.84.84 0 01.62.81c-.01 4.86.95 35.3-2.71 37.67q-.49.32-.82-.17-3.41-5.21-3.51-8.49-.45-15.62-1.16-31.23-.03-.72.66-.52l6.92 1.93z","M621.09 814.28c-4.35 1.91-5.92-3.77-6.5-6.56q-4.52-21.91-8.88-43.95a1.41 1.41 0 011.14-1.66l6.8-1.18a.92.92 0 011.06.76q2.79 16.32 5.09 32.91c.85 6.17 2.2 12.25 1.8 18.95q-.03.52-.51.73z","M291.88 1208.11c5.48-1.03 11.85 5.55 13.38 10.37q2.45 7.74 1.47 16.83-.09.83-.45.08c-4.31-9.05-8-16.99-15.39-23.88a1.98 1.98 0 01.99-3.4z","M275.88 1270.94c-4.41-3.87-7.4-7.17-4.91-13.37q4.78-11.92 5.49-21.32.62-8.27 6.22-12.84c9-7.33 20.8 15 23.1 22.1 2.55 7.91 4.83 16.36 4.49 24.5-.31 7.14-2.02 17.4-6.49 23.1q-.3.38-.53-.05c-5.67-10.74-18.6-14.41-27.37-22.12z","M430.92 1209.12c2.24-1.35 10.54-2.02 6.02 2.65q-9.99 10.32-14.82 23.8a.28.28 0 01-.55-.08c-.52-10.27-.48-20.45 9.35-26.37z","M445.01 1223.26c8.45 6.56 6.46 16.66 9.35 25.59q1.76 5.43 3.47 10.88c3.84 12.26-27.75 21.49-32.21 32.42q-1.02 2.51-2.17.05c-6.91-14.82-6.79-29.36-1.78-44.58q2.82-8.57 8.02-16.04c3.02-4.35 9.61-12.76 15.32-8.32z","M264.5 1334.5c-3.98-.34-18.59-4.25-19.04-9.44a1.4 1.4 0 01.27-.94c9.66-13.03 20.9-25.49 28.65-39.78q.25-.47.78-.37 9.76 1.78 17.73 7.65a1.19 1.18 43 01.07 1.86c-1.32 1.11-1.65 2.62-1.06 4.35 2.96 8.57-.92 16.55-4.81 25.34-1.79 4.06-1.76 8.99-2.81 13.62a1.56 1.56 0 01-1.99 1.14q-8.36-2.64-17.79-3.43z","M291.87 1340.12c-2.25-2.64-2.07-5.93-.78-9.35q3.34-8.88 4.02-18.35.43-6.02 1.25-8.74 1.32-4.37 3.45-8.22a.66.65 53.7 011.21.19q1.97 9.26 6.28 17.3c2.59 4.85-.82 11.49-2.92 16.14a1.81 1.78-35.8 00-.16.94q.42 4.3-1.9 7.94-.22.33-.61.43l-8.79 2.06a1.06 1.06 0 01-1.05-.34z","M444.66 1337.65q-1.08-1.3-1.28-3.09c-.52-4.48-.73-8.39-2.77-12.64-3.51-7.31-7.06-16.37-4.43-23.19.77-1.99.92-3.79-.76-5.13a1.29 1.28 46.4 01.04-2.04q7.96-5.76 17.59-7.64.46-.1.69.32c7.25 13.1 17.21 24.83 26.45 36.56q1.11 1.41 2.51 3.8a1.17 1.14-51 01.09.95c-1.75 5.01-12.93 7.89-17.77 8.55q-9.87 1.36-19.54 3.82a.82.8-26.2 01-.82-.27z","M426.94 1338.55c-2.01-.34-2.96-5.48-3-7.12-.15-6.02-6.29-11.65-3.12-17.89q4.35-8.53 6.34-17.75a.78.78 0 011.47-.17c2.12 4.52 4.18 9.08 4.35 14.33q.35 10.43 3.97 20.24c1.19 3.22 1.52 5.83.39 8.78a2.32 2.31 19.3 01-2.87 1.38q-3.44-1.09-7.53-1.8z","M 418.91 167.68 c 3.92 -1.77 6.58 0.47 7.06 4.32 c 1.48 11.93 -4.92 26.67 -11.75 36.45 c -2.21 3.17 -3.86 0.17 -4.74 -1.76 a 0.38 0.38 0 0 0 -0.73 0.16 c 0.02 8.31 1.01 17.01 -3.36 24.53 c -0.167 0.293 -4.39 4.62 -10.799 9.508 c -23.591 18.112 -41.591 16.112 -61.446 -0.797 c -4.736 -3.649 -5.925 -5.041 -8.805 -7.621 c -5.66 -5.07 -5.28 -17.38 -4.47 -24.92 c 0.05 -0.51 -0.468 -0.892 -0.933 -0.687 a 0.653 0.653 0 0 0 -0.357 0.397 c -0.57 1.69 -2.24 4.05 -4.07 1.48 c -6.2 -8.71 -16.02 -28.53 -11.19 -38.98 c 1.68 -3.627 3.733 -3.91 6.16 -0.85 a 182.853 182.853 0 0 1 3.78 23.29 a 1.02 1.02 0 0 0 1.56 0.77 c 2.79 -1.75 2.61 -18.93 2.63 -24.22 c 0.02 -4.53 1.12 -8.94 3.8 -13.1 c 4.36 -6.76 4.86 -11.51 5.57 -19.82 c 0.47 -5.53 4.34 -8.12 9.77 -8.21 c 6.39 -0.12 12.69 -0.07 19 -0.93 c 4.02 -0.55 7.4 -1.43 11.53 -0.75 c 6.7 1.1 13.44 1.64 20.22 1.62 c 4.607 -0.013 7.523 0.227 8.75 0.72 c 5.96 2.37 5.56 9.73 6.11 15.22 c 0.44 4.34 2.097 8.447 4.97 12.32 c 6.57 8.88 2.19 25.6 5.64 36.36 a 1.14 1.14 0 0 0 2.22 -0.23 c 0.887 -8.36 2.18 -16.45 3.88 -24.27 z z z z","M418.91 167.68q-2.55 11.73-3.88 24.27a1.14 1.14 0 01-2.22.23c-3.45-10.76.93-27.48-5.64-36.36q-4.31-5.81-4.97-12.32c-.55-5.49-.15-12.85-6.11-15.22q-1.84-.74-8.75-.72-10.17.03-20.22-1.62c-4.13-.68-7.51.2-11.53.75-6.31.86-12.61.81-19 .93-5.43.09-9.3 2.68-9.77 8.21-.71 8.31-1.21 13.06-5.57 19.82-2.68 4.16-3.78 8.57-3.8 13.1-.02 5.29.16 22.47-2.63 24.22a1.02 1.02 0 01-1.56-.77q-1.14-11.78-3.78-23.29-1.48-6.99-1.9-9.7c-2.49-15.94.13-40.13 13.53-51.15 9.39-7.72 28.53-11.63 40.37-11.51 4.2.05 8.74-.3 12.68.22 13.82 1.82 31.67 5.83 39.42 18.92 9.01 15.21 9.88 35.14 5.33 51.99z"]},"back":{"muscles":[{"m":"costas","s":"trapezius","p":[[1071.1,308.9],[1076.5,319.6],[1078.3,331.5],[1079.0,343.6],[1079.5,355.7],[1079.6,367.8],[1079.4,379.9],[1079.0,392.0],[1078.5,404.1],[1077.9,416.2],[1077.2,428.2],[1076.4,440.3],[1075.5,452.4],[1074.5,464.4],[1071.8,470.4],[1068.1,458.9],[1063.1,447.9],[1056.9,437.5],[1050.9,427.0],[1045.3,416.3],[1040.1,405.3],[1035.6,394.1],[1031.6,382.7],[1028.0,371.1],[1024.6,359.5],[1021.1,347.9],[1017.5,336.4],[1013.6,324.9],[1009.0,313.7],[1003.1,303.2],[1013.4,299.3],[1025.3,297.5],[1037.4,297.7],[1049.4,299.0],[1061.0,302.2]]},{"m":"costas","s":"trapezius","p":[[1164.0,302.1],[1158.5,312.5],[1153.7,323.6],[1149.8,335.1],[1146.2,346.6],[1142.7,358.1],[1139.2,369.7],[1135.5,381.2],[1131.6,392.7],[1127.3,404.0],[1122.5,415.1],[1116.9,425.8],[1110.8,436.2],[1104.8,446.7],[1099.6,457.6],[1095.7,469.0],[1092.7,465.7],[1091.6,453.6],[1090.7,441.6],[1089.9,429.5],[1089.2,417.4],[1088.6,405.4],[1088.1,393.3],[1087.8,381.2],[1087.5,369.1],[1087.5,357.0],[1087.9,345.0],[1088.8,332.9],[1090.5,320.9],[1095.1,309.9],[1104.8,302.9],[1116.3,299.3],[1128.3,297.8],[1140.3,297.4],[1152.3,299.0]]},{"m":"ombros","s":"deltoids","p":[[980.7,319.6],[974.4,325.6],[966.2,331.7],[959.2,339.1],[954.6,348.2],[952.3,358.1],[951.1,368.3],[946.2,377.0],[938.7,384.0],[930.5,390.1],[921.6,395.0],[914.2,395.0],[914.3,384.8],[914.3,374.6],[914.2,364.4],[914.2,354.2],[915.9,344.1],[920.3,335.0],[926.5,326.9],[934.1,320.0],[942.7,314.6],[952.3,311.2],[962.4,310.9],[972.1,314.1]]},{"m":"ombros","s":"deltoids","p":[[1227.3,316.4],[1235.6,322.4],[1242.9,329.5],[1248.6,337.9],[1251.9,347.5],[1252.8,357.7],[1252.8,367.9],[1252.7,378.1],[1252.7,388.3],[1251.9,397.5],[1242.5,393.6],[1233.8,388.2],[1225.8,381.9],[1218.9,374.4],[1215.5,364.9],[1214.2,354.8],[1211.1,345.1],[1205.8,336.5],[1198.2,329.6],[1189.9,323.8],[1189.2,317.5],[1198.1,312.6],[1208.0,310.7],[1218.1,312.1]]},{"m":"costas","s":"upper-back","p":[[987.1,381.4],[979.9,375.9],[974.2,368.9],[969.5,361.1],[965.5,352.9],[961.8,344.6],[968.3,338.8],[976.3,334.6],[984.5,330.7],[992.8,327.1],[1001.2,323.6],[1009.1,325.5],[1012.5,333.9],[1014.6,342.7],[1016.8,351.5],[1019.0,360.3],[1021.3,369.1],[1023.7,377.8],[1026.2,386.6],[1027.8,395.4],[1019.7,397.1],[1011.1,394.1],[1002.9,390.3],[994.9,386.0]]},{"m":"costas","s":"upper-back","p":[[1017.4,583.3],[1009.5,574.2],[1002.5,564.4],[997.5,553.5],[995.5,541.6],[993.5,529.6],[991.4,517.7],[989.0,505.9],[986.2,494.1],[983.8,482.3],[982.1,470.3],[980.7,458.3],[977.4,446.8],[971.7,436.1],[967.7,424.7],[966.0,412.9],[976.8,417.7],[988.7,420.1],[1000.7,420.9],[1012.4,418.0],[1022.4,411.4],[1030.5,402.5],[1036.9,409.6],[1042.0,420.6],[1047.0,431.6],[1052.0,442.6],[1058.0,453.1],[1063.8,463.6],[1061.9,475.4],[1058.3,487.0],[1054.2,498.3],[1049.7,509.6],[1045.1,520.7],[1040.6,531.9],[1036.1,543.2],[1031.8,554.5],[1027.5,565.8],[1023.3,577.1]]},{"m":"costas","s":"upper-back","p":[[1017.7,404.7],[1010.9,407.9],[1003.8,410.1],[996.4,411.2],[988.9,411.2],[981.5,409.7],[974.6,406.9],[968.5,402.5],[963.5,396.9],[959.9,390.4],[957.5,383.3],[956.3,375.9],[956.0,368.4],[958.0,361.3],[963.7,362.7],[967.1,369.4],[971.5,375.4],[976.9,380.7],[982.8,385.3],[989.1,389.4],[995.7,392.9],[1002.6,395.8],[1009.8,397.9],[1017.1,399.6]]},{"m":"costas","s":"upper-back","p":[[1141.4,397.6],[1139.9,389.6],[1142.5,380.9],[1145.0,372.2],[1147.4,363.4],[1149.7,354.6],[1151.7,345.7],[1153.6,336.8],[1156.4,328.2],[1162.8,322.7],[1171.4,325.8],[1179.7,329.4],[1188.0,333.3],[1196.1,337.4],[1204.0,341.9],[1202.9,349.9],[1199.2,358.2],[1194.7,366.1],[1189.3,373.4],[1182.6,379.6],[1175.0,384.5],[1167.0,388.9],[1158.9,393.0],[1150.4,396.3]]},{"m":"costas","s":"upper-back","p":[[1149.7,404.8],[1149.6,399.8],[1156.9,397.9],[1164.2,396.1],[1171.1,393.3],[1177.7,389.6],[1183.9,385.4],[1189.7,380.7],[1195.2,375.6],[1199.9,369.8],[1203.2,363.0],[1208.8,361.0],[1210.9,368.0],[1210.7,375.5],[1209.6,382.9],[1207.4,390.1],[1203.8,396.7],[1198.8,402.3],[1192.7,406.6],[1185.9,409.6],[1178.5,411.2],[1171.0,411.3],[1163.6,410.2],[1156.5,408.0]]},{"m":"costas","s":"upper-back","p":[[1161.2,420.0],[1173.2,420.8],[1185.2,418.9],[1196.6,415.0],[1200.4,419.7],[1197.3,431.4],[1192.0,442.3],[1187.2,453.3],[1185.5,465.3],[1184.0,477.3],[1181.8,489.2],[1179.1,500.9],[1176.5,512.8],[1174.3,524.7],[1172.3,536.6],[1170.3,548.5],[1167.3,560.1],[1160.7,570.3],[1153.3,579.8],[1145.5,582.0],[1141.3,570.6],[1137.1,559.3],[1132.8,548.0],[1128.4,536.7],[1123.9,525.5],[1119.2,514.3],[1114.6,503.1],[1110.3,491.8],[1106.5,480.4],[1103.3,468.7],[1106.2,457.4],[1112.9,447.3],[1117.9,436.3],[1122.9,425.3],[1127.9,414.3],[1133.0,403.3],[1141.6,407.3],[1149.9,415.8]]},{"m":"triceps","s":"triceps","p":[[931.0,442.3],[926.7,447.9],[920.8,451.4],[918.0,445.1],[916.9,438.1],[916.4,431.0],[916.7,423.9],[918.2,416.9],[921.0,410.3],[924.8,404.3],[929.3,398.8],[934.3,393.7],[939.6,389.0],[945.3,384.7],[950.2,383.6],[951.3,390.6],[952.5,397.7],[953.7,404.7],[954.9,411.7],[956.0,418.7],[953.2,424.5],[947.5,428.7],[941.7,433.0],[936.0,437.2]]},{"m":"triceps","s":"triceps","p":[[958.2,427.1],[960.3,436.6],[960.0,446.6],[957.5,456.3],[953.9,465.7],[951.3,475.4],[947.9,484.8],[941.8,492.7],[937.4,501.6],[935.8,511.6],[932.4,520.9],[926.3,528.9],[919.5,533.4],[918.6,523.4],[919.1,513.4],[920.4,503.4],[922.3,493.5],[924.3,483.7],[925.5,473.7],[926.2,463.7],[928.9,454.1],[935.0,446.2],[942.4,439.4],[950.0,432.8]]},{"m":"triceps","s":"triceps","p":[[903.6,519.7],[900.4,513.6],[899.0,506.7],[898.8,499.7],[899.0,492.6],[899.5,485.6],[900.3,478.6],[901.3,471.6],[902.5,464.7],[903.9,457.7],[905.5,450.9],[907.2,444.0],[909.9,441.3],[913.0,447.6],[915.9,454.0],[918.5,460.6],[920.5,467.3],[920.7,474.4],[919.1,481.2],[916.9,487.9],[914.7,494.6],[912.3,501.3],[909.9,507.9],[907.3,514.4]]},{"m":"triceps","s":"triceps","p":[[1213.9,424.6],[1210.9,418.8],[1212.1,411.8],[1213.3,404.7],[1214.5,397.7],[1215.7,390.6],[1216.8,383.6],[1221.6,384.5],[1227.2,388.9],[1232.6,393.6],[1237.6,398.7],[1242.2,404.2],[1246.0,410.2],[1248.6,416.8],[1250.1,423.8],[1250.6,430.9],[1250.2,438.0],[1249.0,445.1],[1246.3,451.4],[1240.4,448.1],[1236.1,442.4],[1231.2,437.2],[1225.6,432.8],[1219.8,428.7]]},{"m":"triceps","s":"triceps","p":[[1246.2,534.5],[1239.3,527.3],[1233.6,519.1],[1231.0,509.4],[1229.2,499.6],[1224.0,491.1],[1218.3,482.8],[1215.2,473.3],[1212.4,463.7],[1209.1,454.2],[1206.9,444.4],[1206.9,434.4],[1210.8,428.0],[1218.6,434.3],[1226.1,440.9],[1233.4,447.8],[1239.1,456.0],[1240.9,465.8],[1241.8,475.8],[1243.4,485.7],[1245.2,495.6],[1247.0,505.5],[1248.2,515.4],[1248.4,525.5]]},{"m":"triceps","s":"triceps","p":[[1258.4,440.0],[1260.6,446.7],[1262.1,453.5],[1263.5,460.4],[1264.8,467.3],[1266.0,474.3],[1267.0,481.2],[1267.8,488.2],[1268.3,495.3],[1268.4,502.3],[1267.8,509.3],[1265.8,516.0],[1261.3,518.6],[1258.7,512.1],[1256.2,505.5],[1253.7,498.9],[1251.4,492.3],[1249.2,485.6],[1247.1,478.8],[1246.0,471.9],[1247.0,465.0],[1249.2,458.3],[1251.9,451.8],[1255.0,445.5]]},{"m":"costas","s":"lower-back","p":[[986.8,627.1],[985.6,621.1],[984.7,615.0],[984.1,608.8],[983.7,602.7],[983.7,596.5],[984.1,590.3],[985.1,584.3],[986.8,578.3],[989.7,572.9],[994.3,568.9],[1000.0,569.6],[1004.2,574.2],[1008.1,578.9],[1011.8,583.9],[1015.2,589.0],[1018.1,594.5],[1018.9,600.2],[1014.5,604.4],[1009.2,607.7],[1003.8,610.7],[998.8,614.2],[994.5,618.6],[990.7,623.5]]},{"m":"costas","s":"lower-back","p":[[1023.1,608.0],[1023.3,596.2],[1026.4,584.4],[1030.4,572.9],[1034.7,561.5],[1039.1,550.1],[1043.7,538.8],[1048.4,527.6],[1053.4,516.5],[1058.4,505.4],[1063.7,494.4],[1069.7,490.0],[1071.9,502.0],[1073.2,514.1],[1074.3,526.3],[1075.2,538.4],[1075.8,550.6],[1076.2,562.8],[1076.3,574.9],[1076.2,587.1],[1075.9,599.3],[1075.3,611.5],[1074.4,623.6],[1072.4,635.6],[1064.1,634.4],[1053.9,627.8],[1043.6,621.2],[1033.4,614.6]]},{"m":"costas","s":"lower-back","p":[[1090.8,581.8],[1090.8,569.6],[1091.0,557.4],[1091.5,545.2],[1092.1,533.0],[1093.0,520.9],[1094.2,508.7],[1096.0,496.7],[1100.2,488.2],[1105.6,499.2],[1110.7,510.2],[1115.8,521.3],[1120.6,532.5],[1125.2,543.8],[1129.7,555.2],[1134.0,566.6],[1138.1,578.1],[1142.0,589.6],[1144.7,601.5],[1139.3,610.9],[1129.1,617.5],[1118.8,624.1],[1108.6,630.8],[1098.3,637.4],[1093.7,630.4],[1092.3,618.3],[1091.3,606.1],[1090.8,593.9]]},{"m":"costas","s":"lower-back","p":[[1151.2,603.3],[1147.8,598.5],[1149.9,592.8],[1153.1,587.5],[1156.5,582.4],[1160.2,577.4],[1164.1,572.7],[1168.5,568.5],[1174.3,569.9],[1178.3,574.5],[1180.8,580.1],[1182.0,586.1],[1182.7,592.2],[1183.1,598.4],[1183.1,604.5],[1182.8,610.7],[1182.2,616.8],[1181.2,622.9],[1178.8,627.2],[1175.3,622.1],[1171.3,617.5],[1166.6,613.4],[1161.6,609.9],[1156.4,606.6]]},{"m":"gluteos","s":"gluteal","p":[[1045.1,626.2],[1048.1,631.4],[1040.7,633.5],[1033.4,635.8],[1026.2,638.5],[1019.3,641.8],[1012.7,645.7],[1006.4,650.0],[1000.1,654.4],[993.8,658.9],[987.5,663.3],[981.3,667.8],[980.2,662.8],[982.2,655.4],[984.7,648.2],[987.8,641.1],[991.4,634.3],[995.6,627.9],[1000.7,622.2],[1007.7,619.3],[1015.4,618.9],[1023.0,619.7],[1030.5,621.3],[1037.9,623.5]]},{"m":"gluteos","s":"gluteal","p":[[1007.9,762.8],[999.6,753.8],[992.2,744.0],[985.9,733.4],[981.0,722.1],[977.7,710.2],[976.3,698.0],[978.5,685.9],[984.8,675.4],[993.6,666.8],[1003.5,659.5],[1013.9,652.9],[1024.7,647.0],[1035.8,641.7],[1047.4,637.5],[1059.5,636.4],[1068.2,644.8],[1075.1,655.0],[1079.1,666.6],[1080.7,678.8],[1080.9,691.1],[1080.1,703.4],[1078.6,715.6],[1076.4,727.7],[1073.7,739.8],[1072.1,752.0],[1072.0,764.3],[1065.7,774.3],[1054.0,777.7],[1041.9,776.3],[1030.1,772.5],[1018.2,769.4]]},{"m":"gluteos","s":"gluteal","p":[[1117.9,631.0],[1122.7,625.8],[1129.9,623.1],[1137.3,621.1],[1144.9,619.7],[1152.5,619.0],[1160.2,619.6],[1167.0,623.1],[1172.0,628.9],[1176.0,635.4],[1179.6,642.2],[1182.8,649.2],[1185.4,656.5],[1187.2,663.9],[1185.0,667.2],[1178.7,662.8],[1172.4,658.3],[1166.1,653.9],[1159.9,649.4],[1153.6,645.0],[1147.0,641.0],[1140.0,637.9],[1132.7,635.4],[1125.3,633.1]]},{"m":"gluteos","s":"gluteal","p":[[1124.1,776.6],[1111.9,777.6],[1100.4,773.7],[1095.0,763.2],[1094.8,750.8],[1093.2,738.6],[1090.3,726.6],[1088.4,714.5],[1087.1,702.2],[1086.2,689.9],[1086.5,677.6],[1088.2,665.4],[1092.7,654.0],[1099.6,643.8],[1108.5,635.8],[1120.5,637.9],[1132.0,642.3],[1143.2,647.5],[1154.0,653.5],[1164.3,660.2],[1174.2,667.5],[1183.0,676.1],[1188.9,686.9],[1190.5,699.1],[1189.2,711.3],[1185.8,723.1],[1180.7,734.4],[1174.3,744.9],[1166.8,754.6],[1158.4,763.6],[1147.8,769.8],[1135.8,772.8]]},{"m":"posterior","s":"hamstring","p":[[963.3,741.5],[969.2,751.0],[973.5,762.5],[976.9,774.4],[979.1,786.5],[980.7,798.8],[981.6,811.1],[981.8,823.4],[981.3,835.8],[980.2,848.1],[979.3,860.4],[978.3,872.7],[977.7,885.0],[978.0,897.4],[979.2,909.6],[977.1,913.2],[973.8,901.3],[971.3,889.2],[969.5,877.0],[968.1,864.7],[966.8,852.4],[965.7,840.1],[964.7,827.8],[963.8,815.5],[963.1,803.2],[962.5,790.8],[962.2,778.5],[962.1,766.1],[962.3,753.8]]},{"m":"posterior","s":"hamstring","p":[[1030.2,791.5],[1036.6,801.5],[1041.7,812.7],[1044.9,824.5],[1047.1,836.5],[1047.8,848.8],[1045.7,860.8],[1042.3,872.6],[1039.3,884.5],[1036.8,896.5],[1034.7,908.6],[1032.9,920.7],[1031.3,932.8],[1029.8,945.0],[1028.2,957.1],[1026.6,969.3],[1024.8,981.4],[1020.7,986.0],[1018.0,974.1],[1017.0,961.9],[1016.7,949.6],[1016.7,937.4],[1016.8,925.1],[1017.1,912.9],[1017.5,900.6],[1018.1,888.4],[1018.8,876.2],[1019.6,863.9],[1020.5,851.7],[1021.6,839.5],[1022.8,827.3],[1024.0,815.1],[1026.0,803.0]]},{"m":"posterior","s":"hamstring","p":[[998.8,761.9],[1006.7,771.2],[1013.1,781.5],[1017.9,792.6],[1018.5,804.5],[1017.6,816.7],[1017.1,828.8],[1016.6,840.9],[1016.1,853.1],[1015.6,865.2],[1015.0,877.4],[1013.9,889.5],[1012.1,901.5],[1009.5,913.3],[1006.4,925.1],[1003.0,936.8],[999.2,948.3],[995.1,959.7],[990.6,971.1],[985.7,982.2],[979.4,992.5],[978.5,986.6],[979.9,974.5],[981.5,962.4],[983.3,950.4],[985.1,938.4],[986.6,926.3],[987.7,914.2],[988.4,902.1],[988.7,890.0],[988.7,877.8],[988.7,865.6],[988.7,853.5],[988.7,841.3],[988.7,829.2],[988.8,817.0],[989.1,804.9],[989.5,792.7],[990.2,780.6],[991.8,768.6]]},{"m":"posterior","s":"hamstring","p":[[1052.5,855.6],[1053.9,867.6],[1054.5,879.7],[1051.9,891.6],[1049.0,903.5],[1046.4,915.3],[1044.4,927.3],[1043.4,939.5],[1042.6,951.6],[1041.6,963.8],[1040.0,975.8],[1037.8,987.8],[1034.8,999.6],[1033.1,1000.0],[1034.5,987.9],[1035.5,975.8],[1036.1,963.6],[1036.4,951.4],[1036.4,939.2],[1037.8,927.2],[1039.9,915.2],[1042.5,903.3],[1045.3,891.4],[1048.1,879.6],[1050.6,867.6]]},{"m":"posterior","s":"hamstring","p":[[1183.2,947.5],[1185.1,959.5],[1186.7,971.6],[1188.2,983.6],[1189.0,994.9],[1182.8,984.4],[1177.5,973.5],[1172.8,962.3],[1168.6,950.9],[1164.8,939.4],[1161.4,927.8],[1158.2,916.1],[1155.4,904.2],[1153.3,892.3],[1152.1,880.2],[1151.5,868.1],[1151.0,855.9],[1150.5,843.8],[1150.0,831.7],[1149.6,819.5],[1148.6,807.4],[1148.4,795.3],[1152.7,784.0],[1158.7,773.5],[1166.3,764.0],[1174.3,765.9],[1176.5,777.9],[1177.5,790.0],[1177.9,802.1],[1178.0,814.2],[1177.9,826.4],[1177.9,838.5],[1177.9,850.7],[1177.9,862.8],[1178.1,874.9],[1178.3,887.1],[1178.7,899.2],[1179.3,911.3],[1180.0,923.5],[1181.4,935.5]]},{"m":"posterior","s":"hamstring","p":[[1136.4,791.5],[1141.0,802.4],[1142.9,814.5],[1144.2,826.7],[1145.4,838.9],[1146.4,851.1],[1147.3,863.3],[1148.1,875.6],[1148.8,887.8],[1149.3,900.1],[1149.8,912.3],[1150.1,924.6],[1150.2,936.9],[1150.2,949.1],[1150.0,961.4],[1149.0,973.6],[1146.4,985.6],[1142.5,982.1],[1140.4,970.0],[1138.8,957.8],[1137.2,945.7],[1135.6,933.5],[1134.0,921.4],[1132.3,909.2],[1130.3,897.1],[1128.0,885.1],[1125.1,873.2],[1121.5,861.4],[1119.3,849.4],[1119.9,837.2],[1122.0,825.1],[1125.1,813.2],[1130.2,802.1]]},{"m":"posterior","s":"hamstring","p":[[1115.0,856.7],[1116.7,868.8],[1119.0,880.9],[1121.7,892.8],[1124.6,904.7],[1127.4,916.6],[1129.5,928.7],[1130.4,940.9],[1130.6,953.1],[1131.0,965.3],[1131.7,977.5],[1132.7,989.7],[1134.0,1001.9],[1132.0,999.2],[1129.3,987.3],[1127.3,975.2],[1125.7,963.1],[1124.5,950.9],[1123.7,938.7],[1122.9,926.5],[1120.6,914.5],[1117.7,902.6],[1114.9,890.6],[1112.5,878.7],[1113.1,866.5]]},{"m":"posterior","s":"hamstring","p":[[1202.6,741.1],[1204.6,752.4],[1204.8,764.7],[1204.6,777.0],[1204.3,789.3],[1203.8,801.6],[1203.1,813.9],[1202.3,826.2],[1201.3,838.5],[1200.2,850.7],[1199.0,863.0],[1197.6,875.2],[1196.0,887.4],[1193.6,899.5],[1190.6,911.4],[1187.8,910.5],[1188.8,898.2],[1189.2,885.9],[1188.7,873.6],[1187.7,861.3],[1186.7,849.0],[1185.7,836.8],[1185.2,824.5],[1185.4,812.2],[1186.2,799.9],[1187.6,787.7],[1189.9,775.6],[1193.2,763.7],[1197.2,752.1]]},{"m":"panturrilha","s":"calves","p":[[982.7,1149.3],[977.5,1138.5],[974.7,1126.5],[972.7,1114.4],[971.3,1102.2],[970.5,1089.9],[970.3,1077.7],[970.4,1065.4],[970.9,1053.1],[972.0,1040.9],[974.1,1028.8],[977.1,1016.9],[981.1,1005.3],[987.0,994.5],[994.2,984.5],[1001.7,974.8],[1004.1,979.5],[1003.4,991.8],[1002.7,1004.0],[1002.2,1016.3],[1001.7,1028.6],[1001.4,1040.8],[1001.2,1053.1],[1001.0,1065.4],[1000.7,1077.7],[1000.6,1090.0],[1000.5,1102.2],[1000.6,1114.5],[1000.8,1126.8],[1000.3,1139.0],[994.1,1149.3]]},{"m":"panturrilha","s":"calves","p":[[984.0,1163.6],[994.6,1162.1],[1000.9,1171.1],[1002.0,1182.4],[1002.9,1193.7],[1003.7,1205.0],[1004.4,1216.3],[1005.0,1227.6],[1005.5,1238.9],[1005.9,1250.3],[1006.2,1261.6],[1005.8,1272.9],[1004.3,1284.2],[1000.7,1285.2],[998.7,1274.0],[996.9,1262.8],[995.3,1251.6],[993.7,1240.4],[992.2,1229.1],[990.7,1217.9],[989.2,1206.6],[987.4,1195.4],[984.8,1184.4],[981.4,1173.6]]},{"m":"panturrilha","s":"calves","p":[[1013.7,1150.3],[1009.5,1139.3],[1009.5,1127.2],[1010.2,1115.1],[1010.8,1102.9],[1011.2,1090.8],[1011.6,1078.6],[1011.7,1066.5],[1011.7,1054.3],[1011.4,1042.2],[1011.0,1030.0],[1010.3,1017.9],[1009.9,1005.7],[1010.1,993.6],[1010.6,981.4],[1011.9,973.9],[1016.1,985.3],[1021.1,996.4],[1026.4,1007.4],[1031.2,1018.5],[1034.9,1030.1],[1037.5,1042.0],[1039.5,1054.0],[1041.1,1066.0],[1042.2,1078.1],[1042.9,1090.3],[1042.9,1102.4],[1041.1,1114.4],[1037.3,1125.9],[1031.7,1136.7],[1024.1,1146.1]]},{"m":"panturrilha","s":"calves","p":[[1014.1,1164.4],[1024.6,1166.3],[1028.2,1176.1],[1028.0,1187.1],[1027.3,1198.1],[1026.2,1209.0],[1024.8,1219.9],[1022.8,1230.7],[1020.8,1241.4],[1019.0,1252.3],[1017.4,1263.1],[1016.0,1274.0],[1014.7,1284.9],[1013.1,1283.7],[1012.4,1272.8],[1011.8,1261.8],[1011.2,1250.9],[1010.8,1239.9],[1010.4,1228.9],[1010.1,1218.0],[1009.9,1207.0],[1009.9,1196.0],[1010.1,1185.0],[1010.7,1174.1]]},{"m":"panturrilha","s":"calves","p":[[1172.9,1149.3],[1166.8,1139.0],[1166.2,1126.8],[1166.4,1114.5],[1166.4,1102.3],[1166.4,1090.0],[1166.3,1077.7],[1166.2,1065.5],[1165.9,1053.2],[1165.6,1040.9],[1165.2,1028.7],[1164.8,1016.4],[1164.3,1004.1],[1163.7,991.9],[1163.0,979.6],[1165.4,974.8],[1172.8,984.6],[1180.0,994.5],[1185.8,1005.3],[1190.0,1016.8],[1192.9,1028.8],[1194.8,1040.9],[1196.1,1053.1],[1196.8,1065.3],[1197.1,1077.6],[1196.8,1089.9],[1195.9,1102.1],[1194.4,1114.3],[1192.3,1126.4],[1189.5,1138.3],[1184.3,1149.1]]},{"m":"panturrilha","s":"calves","p":[[1144.4,1147.3],[1136.6,1138.1],[1130.4,1127.7],[1126.2,1116.3],[1124.1,1104.4],[1123.9,1092.3],[1124.6,1080.2],[1125.7,1068.1],[1127.2,1056.1],[1129.1,1044.1],[1131.6,1032.3],[1135.2,1020.7],[1139.9,1009.5],[1145.1,998.6],[1149.9,987.5],[1154.3,976.2],[1156.4,980.2],[1156.9,992.3],[1157.2,1004.4],[1156.9,1016.5],[1156.1,1028.6],[1155.6,1040.8],[1155.4,1052.9],[1155.5,1065.0],[1155.7,1077.1],[1156.1,1089.2],[1156.5,1101.3],[1157.0,1113.4],[1157.4,1125.6],[1157.6,1137.7],[1154.6,1149.3]]},{"m":"panturrilha","s":"calves","p":[[1173.7,1161.7],[1184.1,1164.5],[1184.9,1175.1],[1181.6,1186.0],[1179.3,1197.1],[1177.6,1208.3],[1176.1,1219.5],[1174.6,1230.7],[1173.0,1242.0],[1171.5,1253.2],[1169.8,1264.4],[1168.1,1275.6],[1166.1,1286.7],[1162.6,1282.6],[1161.1,1271.4],[1160.8,1260.0],[1161.1,1248.7],[1161.6,1237.4],[1162.1,1226.1],[1162.7,1214.7],[1163.4,1203.4],[1164.3,1192.1],[1165.2,1180.8],[1166.5,1169.6]]},{"m":"panturrilha","s":"calves","p":[[1154.3,1165.0],[1156.6,1175.5],[1157.0,1186.4],[1157.2,1197.4],[1157.1,1208.4],[1156.9,1219.3],[1156.6,1230.3],[1156.2,1241.3],[1155.7,1252.2],[1155.2,1263.2],[1154.6,1274.1],[1153.8,1285.1],[1152.2,1283.3],[1150.7,1272.4],[1149.2,1261.5],[1147.6,1250.7],[1145.9,1239.9],[1143.9,1229.1],[1141.9,1218.3],[1140.5,1207.4],[1139.6,1196.5],[1139.0,1185.5],[1138.7,1174.5],[1143.7,1165.5]]}],"neutral":["M1022.74 290.63a.62.61 25.9 01-.36-1.03q1.71-1.83 4.11-3.11c8.19-4.35 19.4-8.3 23.38-17.48q8.48-19.57 8.22-40.85-.05-4.38.57-5.76c1.98-4.38 9.65-3.66 13.85-2.91 4.3.76 4.71 3.25 4.68 7.3q-.2 24.11-.88 48.2c-.12 4.25 1.6 15.84-4.88 16.32-14.57 1.08-32.6 1.81-48.69-.68z","M1095.75 291.46c-4.3-.25-4.9-3.99-4.95-7.71q-.46-29.47-1-58.94c-.13-7.39 11.74-6.23 15.99-4.85 4.2 1.36 3.01 6.89 2.88 10.79-.28 8.88 5.15 41.1 15.32 46.78q8.6 4.81 17.27 9.51 1.97 1.07 3.26 2.36a.8.79 63.6 01-.45 1.35c-16.12 2.17-33.78 1.56-48.32.71z","M878.44 534.38a.15.15 0 01.18-.13c.47.12 6.68 15.77 7.07 17.22q6.66 24.73 5.52 50.29c-.4 8.9-3.45 17.35-6.64 25.55-7.94 20.38-17.41 41.88-29.59 60.09a1.04 1.02-54.2 01-1.49.25c-.34-.26.37-1.45.47-1.83q5.58-20.8 8.97-42.08 8.65-54.15 15.51-109.36z","M893 518.93a.39.38 24.6 01.69-.25q5.97 7.83 13.11 15.27c8.08 8.4 1.41 28.73-5.88 37.12a1.05 1.05 0 01-1.63-.05c-6.09-7.93-5.41-18.74-4.97-28.44.36-8.12-.76-15.7-1.32-23.65z","M869.06 547.19c2.16.36 1.67 6.21 1.57 7.8q-2.54 38.84-9.11 77.16c-3.04 17.71-8.47 41.3-22.09 54.09a.38.38 0 01-.62-.41c14.51-40.44 19-84.26 26.8-126.31q.9-4.88 1.48-10.82.18-1.81 1.97-1.51z","M864.24 682.58q15.09-28.18 25.12-58.55c8.14-24.63 13.67-42.4 20.79-60.35q3.31-8.37 12.08-9.63c1.35-.2 3.68-.75 4.86.21q1.13.93.61 2.3-5.8 15.45-12.04 29.88c-5.79 13.39-14.92 28.68-20.32 40.14-6.12 13-28.07 59.18-31.64 56.64a.21.21 0 01.03-.36q.15-.07.34-.13.12-.04.17-.15z","M1272.99 519.43c.27-.33.33-.75.75-1.05a.32.32 0 01.5.29c-.7 7.22-1.77 14.33-1.66 21.54.13 8.94 2.13 24-5.35 31.17q-.37.35-.73 0c-7.63-7.55-14.2-28.29-6.52-36.92q6.6-7.41 13.01-15.03z","M1312.82 688.04c-4.78-6.01-7.2-10.8-11.76-19.56q-12.39-23.79-21.03-47.53c-4.86-13.36-5.22-26.17-3.83-40.19q1.13-11.5 2.69-19.53 2.72-13.98 9.59-26.79a.17.17 0 01.32.06q7.26 63.12 17.22 120.49 2.43 14.04 7.03 30.55c.22.79.74 1.33.36 2.4a.34.34 0 01-.59.1z","M1296.52 558.51c-.22-2.94-1.44-10.25 2-12.04a.62.61-18.4 01.89.44q6.25 35.69 12.21 71.07c3.88 23 8.77 46.2 16.73 68.19a.29.29 0 01-.47.31c-11.67-10.67-18.09-31.15-20.89-45.98q-7.27-38.55-10.47-81.99z","M1303.5 683.6c-2.89-.66-10.16-13.21-12.11-17.02-8.8-17.21-16.92-34.81-25.84-51.89-5.36-10.27-10.98-20.49-15.39-30.95q-5.86-13.86-11.07-27.8a1.63 1.62 79.5 011.5-2.2c13.02-.16 15.5 7.18 19.65 18.81q9.04 25.33 17.43 50.89 9.65 29.37 23.82 56.84.87 1.69 2.13 3.12.24.28-.12.2z","M1070.06 785.19c2.95 1.36 1.8 10.43 1.49 13.04q-3.98 33.27-14.66 64.61a.39.39 0 01-.76-.17c.9-7.05 2.31-14.29 2.16-20.92q-.68-30.14-18.71-54.52-.29-.39.18-.49c7.42-1.52 23.53-4.69 30.3-1.55z","M1127.24 787.66c-15.99 21.49-22.3 48.51-16.08 74.83a.47.46-63.2 01-.88.29q-1.99-4.69-3.65-10.24-8.29-27.75-11.6-56.54c-.65-5.71-1.1-11.77 6.87-11.9q13-.19 25.68 2.83a.31.24 41.2 01.1.53q-.12.01-.27.07-.1.04-.17.13z","M998.25 1320.52c-4.62.24-8.17-1.08-8.78-6.28-1.6-13.81-.75-28.85-2.16-42.41q-.39-3.74.24-7.03a.69.69 0 011.23-.28c2.35 3.15 4.22 5.75 5.14 9.66 1.54 6.57 1.91 22.57 9.97 24.09q13.33 2.5 15.93-10.47c.92-4.57 1-12.33 5.05-17.25q.42-.51.42.15c.11 14.39.4 30.86-3.08 44.54-.79 3.13-3.31 4.23-6.51 4.4q-8.73.45-17.45.88z","M1149.5 1319.51c-6.93-.63-6.82-18.08-7.14-23.7q-.73-12.53-.59-25.09.01-.71.45-.15 2.74 3.49 3.29 7.17c1.67 11.25 3.21 25.34 19.7 19.99 4.87-1.58 7.03-18.57 7.89-23.21.79-4.2 2.74-7 5.28-10.13a.56.56 0 01.98.22c1.12 4.6.04 12.39-.37 17.26-.92 10.77-.32 21.48-1.52 32.37q-.7 6.23-7.01 6.18-12.13-.11-20.96-.91z","M962.87 1327.38q-.62-.51-.05-1.07l1.99-1.99q.39-.39.93-.41 25.66-.82 51.26 1 1.34.1 4.43 1.47.46.2.69.64 1.84 3.5 2.87 7.23c2.32 8.38-6.63 7.24-12.23 6.68q-15.37-1.53-30.5-4.56c-8.21-1.65-13.33-3.95-19.39-8.99z","M1154.35 1341.35c-12.48 1.36-13.27-3.88-8.67-13.37 1.82-3.76 12.72-3.65 16.39-3.77q19.44-.63 38.9-.44c2.41.02 3.31 1 4.61 2.76q.32.44-.09.79c-5.43 4.67-10.52 7.17-17.95 8.74q-16.46 3.47-33.19 5.29z","M789.41 726.84c3.98-6.79 9.89-14.6 16.56-20.14a.31.31 0 01.48.35c-4.39 11.06-5.38 21.94-14.02 30.72-5.82 5.93-10.7 9.81-19.04 8.57q-.55-.08-.59-.63c-.24-3.07-.26-7.29 3.1-8.85 4.82-2.26 10.72-5.28 13.51-10.02z","M807.27 745.31c17.61 3.49 2.75 13.52-.73 18.99q-10.05 15.82-21.86 30.37-1.56 1.92-2.52-.58a2.41 2.33-55.4 01-.16-.96q.2-5.26 2.75-9.71c6.94-12.09 13.12-24.52 19.72-36.79q.91-1.7 2.8-1.32z","M819.3 744.82c-7.79-6.06-14.51-12.4-11.88-23.38 3.07-12.83 14.66-20.7 25.14-26.38 9.57-5.18 37.61-.75 37.6 13.68q-.01 16.24-3.67 31.99c-2.38 10.26-4.49 16.44-16.87 16.3-10.71-.13-21.93-5.7-30.32-12.21z","M827.99 758.27a2.08 2.07 26.6 01.91 2.73q-10.47 22.03-19.66 45.04-2.25 5.63-8.23 6.74a1.45 1.44 84.3 01-1.7-1.4q-.1-4.29 1.51-8.31 7.3-18.34 13.86-36.96c.74-2.1 1.53-6.08 2.97-8.96q.26-.5.82-.57 5.05-.64 9.52 1.69z","M841.68 762.32a.76.75-79.1 01.6.89q-4.51 23.14-9.28 45.87c-.73 3.49-2.09 5.73-5.85 5.43q-.52-.04-.61-.56-.74-4.54-.32-7.21 2.89-18.57 5.59-37.18.38-2.65 1.67-8.22.13-.54.68-.44l7.52 1.42z","M854.75 799.53a.78.78 0 01-1.37-.02q-.91-1.75-1.15-4.29-1.62-16.58-1.2-33.25a.84.84 0 01.61-.78l7.09-1.93q.59-.16.56.45-.58 14.77-1.12 29.56c-.14 4.06-1.54 6.86-3.42 10.26z","M1336.39 751.96c-8.72 4.49-29.38 10.28-33.61-3.6q-5.68-18.65-5.83-38.24c-.06-7.59 4.01-11.75 11.09-14.08 8.85-2.92 19.02-5.3 27.54-.35 8.74 5.09 18.39 11.28 22.45 21.01 3.05 7.3 3.34 13.66-1.78 20.01-5.21 6.47-12.49 11.45-19.86 15.25z","M1374.32 737.5c-8.05-8.14-9.61-19.67-13.85-30.75a.22.22 0 01.35-.24q10.3 8.96 17.1 20.77c2.57 4.47 9.08 7.59 13.57 9.79 3.11 1.52 2.96 5.9 2.71 8.73q-.05.52-.57.59c-8.87 1.17-13.48-2.98-19.31-8.89z","M1383.76 795.45c-.59-.21-.96-.17-1.39-.68-8.84-10.3-15.85-21.5-23.44-32.41-2.81-4.02-8.81-7.64-7.45-13.14q.15-.6.7-.84l7.85-3.44q.66-.29 1.13.25 2.36 2.73 4.17 6.49 7.36 15.23 16.89 31.47c2.33 3.96 3.04 7.59 2.32 11.85a.58.58 0 01-.78.45z","M1365.79 812.62c-2.7-.28-6.42-2.66-7.49-5.33q-8.74-21.76-19.85-45.74c-2.12-4.58 6.55-5.17 9.12-5.21 1.8-.03 1.93.71 2.38 2.18q5.72 18.34 15.35 42.12c.74 1.84 4.81 12.43.49 11.98z","M1308.16 759.17l7.44 2.1q.23.07.24.31.75 16.26-.86 32.41-.3 3-1.25 5.48a.79.79 0 01-1.42.12q-3.9-6.58-3.82-13.9.16-13.07-.83-26.11-.05-.57.5-.41z","M1340.07 814.35c-2.7.82-4.99-1.16-5.54-3.71q-5.06-23.49-9.82-47.47a.77.76-10.7 01.62-.9l7.52-1.38q.59-.11.73.47c2.08 8.53 3.26 19.85 4.22 25.75q2.09 12.92 3.19 21.14.34 2.54-.33 5.46a.86.84 88.4 01-.59.64z","M1028.14 166.45c1.03 5.06 1.36 9.61 6.41 11.53 13.06 4.95 16.74 15.51 23.52 27.48 1.387 2.447 3.863 3.623 7.43 3.53a910.025 910.025 0 0136.94-.25c6.23.09 9.27-7.55 11.48-12.3 4.31-9.27 10.37-15.83 20.28-18.94.333-.1.603-.287.81-.56 1.92-2.58 3.043-5.43 3.37-8.55l2.31-1.51a.977.977 0 01.99-.08c11.92 5.42-3.35 35.31-8.21 42.45-.761 1.11-2.423 1.028-3.06-.15l-1.26-2.32c-.133-.253-.32-.297-.56-.13-.34.24-.48.61-.42 1.11.86 7.64.75 16.87-2.96 23.31-.173.3.839.041-3.7 4.71-3.34 3.436-74.18 3.78-75.48-1.38a1.465 1.465 0 00-.55-.82c-4.15-2.97-6.07-7.95-6.16-12.39-.03-1.68.18-14.28-.53-14.63-.207-.1-.33-.037-.37.19-.3 1.553-1.183 2.597-2.65 3.13a.951.951 0 01-1.07-.32c-7.29-9.56-12.32-22.18-12.97-33.54-.34-6.04 1.797-9.23 6.41-9.57zm29.95 61.71c.173 14.187 18.967 14.703 19.1-1.37.03-4.05-.38-6.54-4.68-7.3-4.2-.75-11.87-1.47-13.85 2.91-.413.92-.603 2.84-.57 5.76zm31.71-3.35c.36 19.647 18.59 14.82 18.87 5.94.13-3.9 1.32-9.43-2.88-10.79-4.25-1.38-16.12-2.54-15.99 4.85z","M1138.38 168.39q-.49 4.68-3.37 8.55-.31.41-.81.56c-9.91 3.11-15.97 9.67-20.28 18.94-2.21 4.75-5.25 12.39-11.48 12.3q-18.46-.25-36.94.25-5.35.14-7.43-3.53c-6.78-11.97-10.46-22.53-23.52-27.48-5.05-1.92-5.38-6.47-6.41-11.53q-6.64-26.16 4.43-48.88c8.13-16.7 34.61-21.41 51.58-21.04 4.89.11 9.69-.11 14.42.85 18.79 3.8 33.17 8.5 39.34 28.66q6.38 20.88.47 42.35z"]}};
+/* Hipertrofia realista: o músculo engrossa pela barriga, com as pontas (tendões) presas. */
+function musclePrep(pts){
+  let cx=0,cy=0; pts.forEach(p=>{cx+=p[0];cy+=p[1]}); cx/=pts.length; cy/=pts.length;
+  let sxx=0,syy=0,sxy=0; pts.forEach(p=>{const x=p[0]-cx,y=p[1]-cy;sxx+=x*x;syy+=y*y;sxy+=x*y});
+  const ang=.5*Math.atan2(2*sxy,sxx-syy), ux=Math.cos(ang), uy=Math.sin(ang);
+  const proj=pts.map(p=>[(p[0]-cx)*ux+(p[1]-cy)*uy,(p[0]-cx)*-uy+(p[1]-cy)*ux]);
+  let a0=Infinity,a1=-Infinity; proj.forEach(q=>{if(q[0]<a0)a0=q[0];if(q[0]>a1)a1=q[0]});
+  return {cx,cy,ux,uy,proj,a0,a1};
+}
+function muscleShape(prep,g){
+  const {cx,cy,ux,uy,proj,a0,a1}=prep, mid=(a0+a1)/2, half=(a1-a0)/2||1;
+  const out=proj.map(([a,b])=>{
+    const t=(a-mid)/half;                          // -1..1 ao longo do músculo
+    const bell=Math.pow(Math.max(0,Math.cos(t*Math.PI/2)),.85);
+    const k=1+g*bell;                              // engrossa no meio
+    const a2=a;
+    const b2=b*k;
+    return [cx+a2*ux-b2*uy, cy+a2*uy+b2*ux];
+  });
+  return smoothClosed(out);
+}
+function smoothClosed(P){
+  const n=P.length, f=v=>v.toFixed(1); let d=`M${f(P[0][0])},${f(P[0][1])}`;
+  for(let i=0;i<n;i++){
+    const p0=P[(i-1+n)%n],p1=P[i],p2=P[(i+1)%n],p3=P[(i+2)%n];
+    const c1x=p1[0]+(p2[0]-p0[0])/6,c1y=p1[1]+(p2[1]-p0[1])/6,c2x=p2[0]-(p3[0]-p1[0])/6,c2y=p2[1]-(p3[1]-p1[1])/6;
+    d+=`C${f(c1x)},${f(c1y)} ${f(c2x)},${f(c2y)} ${f(p2[0])},${f(p2[1])}`;
+  }
+  return d+"Z";
+}
+const PREP={front:ANAT.front.muscles.map(m=>musclePrep(m.p)),back:ANAT.back.muscles.map(m=>musclePrep(m.p))};
+const MUSCLE_VIEW={peito:"front",biceps:"front",abdomen:"front",quadriceps:"front",costas:"both",triceps:"both",gluteos:"back",posterior:"back",ombros:"both",panturrilha:"both",outros:"none"};
+
+function exStats(id){
+  const u=exUnitNow(id), h=exHist(id,u);
+  if(!h.length) return null;
+  const first=h[0].vol,last=h[h.length-1].vol;
+  return {id,u,h,first,last,ratio:first>0?last/first:1,top:Math.max(...h.map(x=>x.top))};
+}
+function muscleStats(){
+  const ids=new Set(Object.keys(EX_INDEX)); sessions.forEach(s=>Object.keys(s.log||{}).forEach(k=>ids.add(k)));
+  const g={};
+  Object.keys(MUSCLES).forEach(m=>g[m]={m,ex:[],trained:[],ratio:1,sessions:0});
+  ids.forEach(id=>{const m=muscleOf(id);const st=exStats(id);if(!EX_INDEX[id]&&!st)return;g[m].ex.push(id);if(st){g[m].trained.push(st);g[m].sessions+=st.h.length}});
+  Object.values(g).forEach(x=>{if(x.trained.length)x.ratio=x.trained.reduce((a,s)=>a+s.ratio,0)/x.trained.length});
+  return g;
+}
+const growG=r=>Math.min(.35,Math.max(0,r-1)*1.2);
+const growAlpha=(st)=>st.trained.length?Math.min(1,.6+Math.max(0,st.ratio-1)*1.5):0;
+const pctTxt=r=>{const p=Math.round((r-1)*100);return (p>0?"+":"")+p+"%"};
+
+function bodySVG(side,stats,sel){
+  const A=ANAT[side], vb=side==="front"?"0 40 724 1400":"724 40 724 1400";
+  const neutral=A.neutral.map(d=>`<path class="bn" d="${d}"/>`).join("");
+  const mus=A.muscles.map((m,i)=>{const st=stats[m.m],on=st.trained.length>0;
+    return `<path class="mus${on?" on":""}${sel===m.m?" sel":""}" data-m="${m.m}" data-i="${i}" data-g="${on?growG(st.ratio).toFixed(3):0}" d="${muscleShape(PREP[side][i],0)}" style="fill-opacity:${on?growAlpha(st).toFixed(2):1}" role="button" tabindex="0" aria-label="${MUSCLES[m.m]}"/>`}).join("");
+  return `<svg class="body" data-side="${side}" viewBox="${vb}" role="group" aria-label="Corpo, vista ${side==="front"?"de frente":"de costas"}">
+  <defs><linearGradient id="mg" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#e8317a"/><stop offset=".55" stop-color="#ff5a36"/><stop offset="1" stop-color="#ffb020"/></linearGradient></defs>
+  ${neutral}${mus}</svg>`;
+}
+function growBody(svg){
+  if(!svg) return;
+  const side=svg.dataset.side, els=[...svg.querySelectorAll(".mus")].filter(el=>+el.dataset.g>0);
+  if(!els.length) return;
+  const t0=performance.now(), dur=reduce?0:1200;
+  const step=now=>{
+    const t=dur?Math.max(0,Math.min(1,(now-t0)/dur)):1, e=1-Math.pow(1-t,3);
+    els.forEach(el=>el.setAttribute("d",muscleShape(PREP[side][+el.dataset.i],+el.dataset.g*e)));
+    if(t<1&&svg.isConnected) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+  setTimeout(()=>{if(svg.isConnected) els.forEach(el=>el.setAttribute("d",muscleShape(PREP[side][+el.dataset.i],+el.dataset.g)))},dur+400);
+}
+function spark(h){
+  const W_=80,H=26,v=h.map(x=>x.vol),mn=Math.min(...v),mx=Math.max(...v),sp=mx-mn||1;
+  const pts=v.map((y,i)=>`${(v.length===1?W_/2:i*(W_-4)/(v.length-1)+2).toFixed(1)},${(H-3-(y-mn)/sp*(H-6)).toFixed(1)}`).join(" ");
+  return `<svg class="spark" viewBox="0 0 ${W_} ${H}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="url(#mg2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="mg2" x1="0" x2="1"><stop offset="0" stop-color="#e8317a"/><stop offset="1" stop-color="#ffb020"/></linearGradient></defs></svg>`;
+}
+
+let selEx=null, armedDel=null, selMuscle=null, bodySide="front";
+function renderProgress(){
+  const stats=muscleStats();
+  const any=Object.values(stats).some(s=>s.trained.length);
+  if(!selMuscle||!stats[selMuscle]||!stats[selMuscle].ex.length){
+    const best=Object.values(stats).filter(s=>s.trained.length).sort((a,b)=>b.ratio-a.ratio)[0];
+    selMuscle=best?best.m:null;
+  }
+  const mv=selMuscle&&MUSCLE_VIEW[selMuscle];
+  if(mv==="front"||mv==="back") bodySide=mv;
+  const g=selMuscle?stats[selMuscle]:null;
+  if(g&&(!selEx||!g.trained.some(t=>t.id===selEx))) selEx=g.trained[0]?g.trained[0].id:null;
+  const list=[...sessions].reverse().slice(0,30);
+  const others=Object.values(stats).filter(s=>s.m==="outros"&&s.ex.length);
+  view.innerHTML=`
+  <div class="eyebrow">Progresso</div>
+  <section class="card body-card">
+    <div class="row between"><span class="muted" style="font-size:13px">${any?"Toque em um músculo":"Seu shape começa aqui"}</span>
+      <div class="seg" role="group" aria-label="Vista"><button data-side="front" aria-pressed="${bodySide==="front"}">Frente</button><button data-side="back" aria-pressed="${bodySide==="back"}">Costas</button></div></div>
+    <div class="body-wrap">${bodySVG(bodySide,stats,selMuscle)}</div>
+    ${any?`<p class="note">Quanto mais o volume de um músculo sobe, maior e mais aceso ele fica.</p>`:`<p class="note">Depois do primeiro treino, cada músculo treinado acende. Conforme o volume sobe, ele cresce.</p>`}
+    ${others.length?`<div class="row" style="justify-content:center"><button class="chip ${selMuscle==="outros"?"cur":""}" data-mchip="outros">Outros exercícios</button></div>`:""}
+  </section>
+  ${g?muscleCard(g):""}
+  ${list.length?`<div class="eyebrow">Histórico</div>
+  <div class="hist">${list.map(s=>{const vol=Object.entries(s.log).filter(([k])=>((s.units&&s.units[k])||exUnitNow(k))==="kg").reduce((a,[k,x])=>a+exVol(x),0);const d=parseDay(s.date);
+    return `<div class="item"><b class="l">${s.day}</b><div><b>${d.toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"short"})}</b><div class="muted num" style="font-size:12px">${fmt(vol)} kg · ${Object.keys(s.log).length} exercícios${s.minutes?` · ${s.minutes} min`:""}</div></div><button class="del ${armedDel===s.id?"arm":""}" data-del="${s.id}">${armedDel===s.id?"Apagar?":"Apagar"}</button></div>`}).join("")}</div>`:""}`;
+  // crescer os músculos depois do primeiro quadro
+  growBody(view.querySelector(".body"));
+  const pick=m=>{if(!stats[m]||!stats[m].ex.length){toast(`Nenhum exercício de ${MUSCLES[m].toLowerCase()} no seu plano ainda.`);return}selMuscle=m;selEx=null;render();const c=$(".muscle-card");if(c)c.scrollIntoView({behavior:reduce?"auto":"smooth",block:"nearest"})};
+  view.querySelectorAll(".mus").forEach(p=>{p.addEventListener("click",()=>pick(p.dataset.m));p.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();pick(p.dataset.m)}})});
+  view.querySelectorAll("[data-mchip]").forEach(b=>b.onclick=()=>pick(b.dataset.mchip));
+  view.querySelectorAll("[data-side]").forEach(b=>b.onclick=()=>{if(bodySide===b.dataset.side)return;bodySide=b.dataset.side;const vm=MUSCLE_VIEW[selMuscle];if(vm!=="both"&&vm!==bodySide)selMuscle=Object.values(stats).filter(s=>s.trained.length&&(MUSCLE_VIEW[s.m]===bodySide||MUSCLE_VIEW[s.m]==="both")).sort((a,b)=>b.ratio-a.ratio).map(s=>s.m)[0]||selMuscle;render()});
+  view.querySelectorAll("[data-ex]").forEach(b=>b.onclick=()=>{selEx=selEx===b.dataset.ex?null:b.dataset.ex;render()});
+  view.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{const id=b.dataset.del;if(armedDel!==id){armedDel=id;render();setTimeout(()=>{if(armedDel===id){armedDel=null;if(tab==="progress"&&!W)render()}},3000);return}armedDel=null;await deleteSession(id);toast("Sessão apagada.");render()});
+}
+function muscleCard(g){
+  const trained=g.trained, untrained=g.ex.filter(id=>!trained.some(t=>t.id===id));
+  return `<section class="card muscle-card pop">
+    <div class="row between"><div><div class="eyebrow">Grupo muscular</div><h2 style="font-size:22px;font-weight:800">${MUSCLES[g.m]}</h2></div>
+    ${trained.length?`<span class="pill num ${g.ratio>1?"up":""}" style="font-size:14px">${pctTxt(g.ratio)}</span>`:""}</div>
+    <div class="muted" style="font-size:12px;margin-top:2px">${trained.length?`Volume médio desde o início · ${g.sessions} registro${g.sessions===1?"":"s"}`:"Ainda sem registros"}</div>
+    <div class="exlist">
+    ${trained.map(st=>{const open=selEx===st.id;return `<div class="exrow ${open?"open":""}">
+      <button class="exhead" data-ex="${st.id}" aria-expanded="${open}">
+        <span class="exname">${esc(exName(st.id))}</span>
+        ${spark(st.h)}
+        <span class="exp num ${st.ratio>1?"up":"down"}">${st.h.length>1?pctTxt(st.ratio):"novo"}</span>
+      </button>
+      ${open?`<div class="exbody">
+        <div class="muted" style="font-size:12px">${st.u==="placa"?"Volume por sessão (nº da placa × reps)":"Volume por sessão (kg × reps)"}</div>
+        <div class="chart-wrap">${chartSVG(st.h)}</div>
+        <div class="stats">
+          <div><b class="num">${fmt(st.last)}</b><span>último volume</span></div>
+          <div><b class="num">${st.h.length}</b><span>sessões</span></div>
+          <div><b class="num">${fmt(st.top)}</b><span>${st.u==="placa"?"maior placa":"maior carga (kg)"}</span></div>
+        </div></div>`:""}
+    </div>`}).join("")}
+    ${untrained.map(id=>`<div class="exrow"><div class="exhead dim"><span class="exname">${esc(exName(id))}</span><span class="exp muted">sem registro</span></div></div>`).join("")}
+    </div>
+  </section>`;
+}
+function chartSVG(h){
+  const W_=340,H=180,l=44,r=12,t=14,b=26;
+  const vals=h.map(x=>x.vol); let mn=Math.min(...vals),mx=Math.max(...vals);
+  if(mn===mx){mn=mn*.8;mx=mx*1.2||10}
+  const span=mx-mn, stepRaw=span/3, mag=Math.pow(10,Math.floor(Math.log10(stepRaw))), step=[1,2,2.5,5,10].map(m=>m*mag).find(s=>s>=stepRaw);
+  const lo=Math.floor(mn/step)*step, hi=Math.ceil(mx/step)*step;
+  const X=i=>l+(W_-l-r)*(h.length===1?.5:i/(h.length-1)), Y=v=>t+(H-t-b)*(1-(v-lo)/(hi-lo));
+  let grid="";for(let v=lo;v<=hi+1e-9;v+=step){grid+=`<line x1="${l}" x2="${W_-r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${l-6}" y="${Y(v)+4}" text-anchor="end" font-size="10" fill="var(--muted)">${fmt(Math.round(v))}</text>`}
+  const pts=h.map((x,i)=>`${X(i)},${Y(x.vol)}`).join(" ");
+  const area=`M${X(0)},${H-b} L${pts.split(" ").join(" L")} L${X(h.length-1)},${H-b} Z`;
+  const idx=[0,Math.floor((h.length-1)/2),h.length-1].filter((v,i,a)=>a.indexOf(v)===i);
+  const dl=idx.map(i=>`<text x="${X(i)}" y="${H-8}" text-anchor="${h.length===1?"middle":i===0?"start":i===h.length-1?"end":"middle"}" font-size="10" fill="var(--muted)">${parseDay(h[i].date).toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})}</text>`).join("");
+  const lastI=h.length-1;
+  return `<svg viewBox="0 0 ${W_} ${H}" role="img" aria-label="Gráfico de volume por sessão"><defs><linearGradient id="ar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5a36" stop-opacity=".35"/><stop offset="1" stop-color="#ff5a36" stop-opacity="0"/></linearGradient><linearGradient id="ln" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#e8317a"/><stop offset=".5" stop-color="#ff5a36"/><stop offset="1" stop-color="#ffb020"/></linearGradient></defs>
+  ${grid}<path d="${area}" fill="url(#ar)"/><polyline points="${pts}" fill="none" stroke="url(#ln)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  ${h.map((x,i)=>`<circle cx="${X(i)}" cy="${Y(x.vol)}" r="${i===lastI?5:3}" fill="${i===lastI?"#ffb020":"var(--fg)"}"/>`).join("")}${dl}</svg>`;
+}
+
+/* ============ PLANO (TELA) ============ */
+function savePlan(){
+  indexPlan(); LS.set("fa.plan",PLAN);
+  if(col){ col.doc("plan").set({kind:"plan",plan:PLAN,updated:Date.now()}).catch(()=>toast("Plano salvo neste aparelho. A nuvem não respondeu.")) }
+}
+const restTxt = r=>r>=60?Math.floor(r/60)+"min"+(r%60?" "+r%60+"s":""):r+"s";
+let editDay=null, draft=null, armedRm=null, armedReset=false;
+function renderPlan(){
+  if(editDay) return renderEditor();
+  view.innerHTML=`
+  <div class="eyebrow">Seu plano · Superior / Inferior 4x por semana</div>
+  <section class="card" style="font-size:14px">
+    <b>Como progredir</b>
+    <p class="muted" style="margin:6px 0 0">Pare cada série com 1 a 3 repetições sobrando. Quando bater o topo da faixa em todas as séries, suba a carga. O app sugere o aumento sozinho. Nas duas primeiras semanas, vá mais leve.</p>
+  </section>
+  <section class="card" style="font-size:14px">
+    <b>Polias com número na placa</b>
+    <p class="muted" style="margin:6px 0 0">Marque esses exercícios como "nº da placa". O número do pino quase nunca é o peso real que chega na sua mão, e muda de aparelho para aparelho. Não tem problema: para progredir, o que importa é comparar com você mesmo no mesmo aparelho. Use sempre a mesma máquina e anote o número.</p>
+  </section>
+  ${ORDER.map(d=>`<section class="card">
+    <div class="row between"><div style="min-width:0"><div class="eyebrow">Treino ${d}</div><h2 style="font-size:19px;font-weight:800">${esc(PLAN[d].name)}</h2>${PLAN[d].focus?`<div class="muted" style="font-size:12px">${esc(PLAN[d].focus)}</div>`:""}</div><b class="big" style="font-size:44px;color:var(--surface-2)">${d}</b></div>
+    <div style="margin-top:10px">${PLAN[d].ex.length?PLAN[d].ex.map(e=>`<div class="sum-row"><span>${esc(e.name)}${unitOf(e)==="placa"?` <span class="tag">placa</span>`:""}</span><span class="muted num">${e.sets}×${e.min}–${e.max} · ${restTxt(e.rest)}</span></div>`).join(""):`<p class="muted">Nenhum exercício. Toque em Editar para adicionar.</p>`}</div>
+    <div class="row" style="margin-top:10px"><button class="btn ghost" style="flex:1" data-edit="${d}">Editar</button><button class="btn ghost" style="flex:1" data-start="${d}" ${PLAN[d].ex.length?"":"disabled"}>Iniciar ${d}</button></div>
+  </section>`).join("")}
+  <section class="card" style="font-size:14px">
+    <b>Backup</b>
+    <p class="muted" style="margin:6px 0 10px">Seus treinos ficam salvos só neste celular. Todo mês o app lembra você de exportar e importar o arquivo no Farmando Aura do Claude, onde ele fica guardado na sua conta. ${lastBackupTxt()}</p>
+    <div class="row"><button class="btn ghost" style="flex:1" id="exp">Exportar backup</button><label class="btn ghost" style="flex:1" for="imp">Importar backup</label><input type="file" id="imp" accept="application/json,.json" hidden></div>
+  </section>
+  <button class="linkbtn" id="reset" style="align-self:center">${armedReset?"Toque de novo para voltar ao plano original":"Restaurar plano original"}</button>
+  <p class="note">Sugestão de semana: seg A · ter B · qui C · sex D.</p>`;
+  view.querySelectorAll("[data-start]").forEach(b=>b.onclick=()=>startWorkout(b.dataset.start));
+  view.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{editDay=b.dataset.edit;draft=clone(PLAN[editDay]);armedRm=null;render();window.scrollTo(0,0)});
+  $("#exp").onclick=exportBackup;
+  $("#imp").onchange=e=>{const f=e.target.files&&e.target.files[0];if(f)importBackup(f);e.target.value=""};
+  $("#reset").onclick=()=>{
+    if(!armedReset){armedReset=true;render();setTimeout(()=>{if(armedReset){armedReset=false;if(tab==="plan"&&!editDay&&!W)render()}},3500);return}
+    armedReset=false;PLAN=clone(DEFAULT_PLAN);savePlan();render();toast("Plano original restaurado. Seu histórico continua salvo.")};
+}
+function lastBackupTxt(){const t=LS.get("fa.lastBackup",null);if(!t)return "Você ainda não fez nenhum backup.";const d=Math.floor((Date.now()-t)/864e5);return d===0?"Último backup: hoje.":`Último backup: há ${d} dia${d>1?"s":""}.`}
+async function exportBackup(){
+  const data={app:"farmando-aura",version:1,exported:new Date().toISOString(),plan:PLAN,sessions};
+  const name=`farmando-aura-backup-${dayStr(new Date())}.json`;
+  const blob=new Blob([JSON.stringify(data)],{type:"application/json"});
+  try{
+    const file=new File([blob],name,{type:"application/json"});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:"Backup Farmando Aura"});LS.set("fa.lastBackup",Date.now());render();return}
+  }catch(e){if(e&&e.name==="AbortError")return}
+  const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
+  LS.set("fa.lastBackup",Date.now());render();toast("Backup salvo nos downloads.");
+}
+async function importBackup(f){
+  try{
+    const txt=f.text?await f.text():await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsText(f)});
+    const data=JSON.parse(txt);
+    if(data.app!=="farmando-aura"||!Array.isArray(data.sessions))throw new Error("formato");
+    const ids=new Set(sessions.map(s=>s.id)); let added=0;
+    data.sessions.forEach(s=>{if(s&&s.id&&s.log&&!ids.has(s.id)){sessions.push(s);added++}});
+    sessions.sort((a,b)=>a.date.localeCompare(b.date)); LS.set("fa.sessions",sessions);
+    if(data.plan&&ORDER.every(k=>data.plan[k]&&Array.isArray(data.plan[k].ex))){PLAN=clone(data.plan);savePlan()}
+    render(); toast(`Backup importado: ${added} treino${added===1?"":"s"} novo${added===1?"":"s"}.`);
+  }catch(e){toast("Esse arquivo não é um backup do Farmando Aura.")}
+}
+function numField(id,label,val,stepv){return `<div class="nf"><label for="${id}">${label}</label><div class="ctl"><button type="button" data-nf="${id}" data-d="-${stepv}" aria-label="Diminuir ${label}">−</button><input id="${id}" inputmode="decimal" value="${fmt(val)}"><button type="button" data-nf="${id}" data-d="${stepv}" aria-label="Aumentar ${label}">+</button></div></div>`}
+function renderEditor(){
+  const d=editDay;
+  view.innerHTML=`
+  <div class="wo-head"><div class="eyebrow">Editando treino ${d}</div><button class="linkbtn" id="cancel">Cancelar</button></div>
+  <section class="card ed">
+    <div class="tf"><label for="dname">Nome do treino</label><input id="dname" value="${esc(draft.name)}" maxlength="40"></div>
+    <div class="tf"><label for="dfocus">Descrição curta</label><input id="dfocus" value="${esc(draft.focus||"")}" maxlength="60" placeholder="Ex.: foco em costas"></div>
+  </section>
+  ${draft.ex.map((e,i)=>`<section class="card ed" data-i="${i}">
+    <div class="row between"><span class="eyebrow">Exercício ${i+1}</span>
+      <div class="row" style="gap:4px"><button class="mini" data-mv="-1" ${i===0?"disabled":""} aria-label="Subir">↑</button><button class="mini" data-mv="1" ${i===draft.ex.length-1?"disabled":""} aria-label="Descer">↓</button><button class="mini rm ${armedRm===e.id?"arm":""}" data-rm>${armedRm===e.id?"Remover?":"Remover"}</button></div></div>
+    <div class="tf"><label for="n${i}">Nome</label><input id="n${i}" value="${esc(e.name)}" maxlength="50"></div>
+    <div class="tf"><label for="mg${i}">Grupo muscular</label><select id="mg${i}">${Object.entries(MUSCLES).map(([k,v])=>`<option value="${k}" ${muscleOfEx(e)===k?"selected":""}>${v}</option>`).join("")}</select></div>
+    <div class="grid2">
+      ${numField(`s${i}`,"Séries",e.sets,1)}
+      ${numField(`rest${i}`,"Descanso (s)",e.rest,15)}
+      ${numField(`mi${i}`,"Reps mín.",e.min,1)}
+      ${numField(`ma${i}`,"Reps máx.",e.max,1)}
+    </div>
+    <div class="nf"><label>Carga registrada em</label><div class="seg wide" role="group"><button data-u="kg" aria-pressed="${unitOf(e)==="kg"}">kg</button><button data-u="placa" aria-pressed="${unitOf(e)==="placa"}">nº da placa</button></div></div>
+    <div class="grid2">${numField(`st${i}`,unitOf(e)==="placa"?"Subir de (placas)":"Subir de (kg)",e.step,unitOf(e)==="placa"?1:.5)}</div>
+  </section>`).join("")}
+  <button class="btn ghost block" id="add">+ Adicionar exercício</button>
+  <button class="btn primary block" id="saveplan">Salvar treino ${d}</button>
+  <p class="note">Renomear ou mudar séries mantém o histórico do exercício. Remover tira só do plano; o histórico continua no Progresso.</p>`;
+  const sync=()=>{
+    draft.name=$("#dname").value.trim()||`Treino ${d}`; draft.focus=$("#dfocus").value.trim();
+    draft.ex.forEach((e,i)=>{const g=id=>parseFloat(String($("#"+id).value).replace(",","."));
+      e.name=$("#n"+i).value.trim()||"Exercício";
+      e.muscle=$("#mg"+i).value;
+      e.sets=Math.max(1,Math.min(10,Math.round(g("s"+i))||1));
+      e.rest=Math.max(0,Math.min(600,Math.round(g("rest"+i))||0));
+      e.min=Math.max(1,Math.round(g("mi"+i))||1);
+      e.max=Math.max(e.min,Math.round(g("ma"+i))||e.min);
+      e.step=Math.max(.5,g("st"+i)||1)})};
+  view.querySelectorAll("[data-nf]").forEach(b=>b.onclick=()=>{const inp=$("#"+b.dataset.nf);let v=parseFloat(String(inp.value).replace(",","."))||0;v=Math.max(0,+(v+parseFloat(b.dataset.d)).toFixed(2));inp.value=fmt(v)});
+  view.querySelectorAll("section[data-i]").forEach(sec=>{const i=+sec.dataset.i;
+    sec.querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{sync();const j=i+(+b.dataset.mv);[draft.ex[i],draft.ex[j]]=[draft.ex[j],draft.ex[i]];armedRm=null;render()});
+    sec.querySelector("[data-rm]").onclick=()=>{sync();const id=draft.ex[i].id;if(armedRm!==id){armedRm=id;render();return}draft.ex.splice(i,1);armedRm=null;render()};
+    sec.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{sync();const e=draft.ex[i];if(unitOf(e)===b.dataset.u)return;e.unit=b.dataset.u;e.step=e.unit==="placa"?1:2.5;render()});
+  });
+  $("#add").onclick=()=>{sync();draft.ex.push({id:"x-"+Date.now().toString(36),name:"Novo exercício",sets:3,min:8,max:12,rest:90,step:2.5});armedRm=null;render();
+    setTimeout(()=>{if(!draft)return;const inp=$("#n"+(draft.ex.length-1));if(inp){inp.scrollIntoView({block:"center"});inp.select()}},0)};
+  $("#cancel").onclick=()=>{editDay=null;draft=null;render();window.scrollTo(0,0)};
+  $("#saveplan").onclick=()=>{sync();PLAN[d]=draft;savePlan();editDay=null;draft=null;render();window.scrollTo(0,0);toast(`Treino ${d} salvo.`)};
+}
+
+/* ============ EFEITOS ============ */
+function burstAt(r,text){
+  if(!r) return;
+  const x=r.left+r.width/2, y=r.top+r.height/2;
+  try{navigator.vibrate&&navigator.vibrate([35,30,60])}catch(e){}
+  const t=document.createElement("div"); t.className="burst-txt"; t.innerHTML=`<small>Série recorde</small>${esc(text)}`;
+  t.style.left=x+"px"; t.style.top=y+"px"; document.body.appendChild(t); setTimeout(()=>t.remove(),1500);
+  if(reduce) return;
+  const cv=$("#burst"); if(!cv) return; cv.hidden=false;
+  const dpr=Math.min(2,devicePixelRatio||1); cv.width=innerWidth*dpr; cv.height=innerHeight*dpr;
+  const c=cv.getContext("2d"); c.setTransform(dpr,0,0,dpr,0,0);
+  const cols=["#ffb020","#ff5a36","#e8317a","#efeae3","#3fd28b"];
+  const P=Array.from({length:90},(_,i)=>{const a=Math.random()*Math.PI*2,s=3+Math.random()*10;return {x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,l:1,r:2+Math.random()*3,c:cols[i%5]}});
+  const t0=performance.now();
+  const step=now=>{const k=Math.max(0,(now-t0)/1000);c.clearRect(0,0,innerWidth,innerHeight);
+    if(k<.45){c.globalAlpha=1-k/.45;c.strokeStyle="#ffb020";c.lineWidth=4*(1-k/.45)+1;c.beginPath();c.arc(x,y,20+k*260,0,7);c.stroke()}
+    let alive=false;
+    P.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.28;p.vx*=.975;p.l-=.016;if(p.l>0){alive=true;c.globalAlpha=p.l;c.fillStyle=p.c;c.beginPath();c.arc(p.x,p.y,p.r,0,7);c.fill()}});
+    c.globalAlpha=1;
+    if(alive||k<.45) requestAnimationFrame(step); else {c.clearRect(0,0,innerWidth,innerHeight);cv.hidden=true}};
+  requestAnimationFrame(step);
+  setTimeout(()=>{c.clearRect(0,0,innerWidth,innerHeight);cv.hidden=true},2600);
+}
+/* transição entre telas */
+(function(){
+  const base=render; let lastKey=null;
+  render=function(){
+    base();
+    const k=W?(W.summary?"sum":W.rest?"rest":"ex"+W.exIdx):tab+"|"+(editDay||"");
+    if(k!==lastKey){lastKey=k;view.classList.remove("enter");void view.offsetWidth;view.classList.add("enter")}
+  };
+})();
+
+render();
+initCloud();
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").then(reg=>{
+    reg.addEventListener("updatefound",()=>{const nw=reg.installing;nw&&nw.addEventListener("statechange",()=>{if(nw.state==="installed"&&navigator.serviceWorker.controller)toast("Nova versão instalada. Feche e abra o app para usar.")})});
+  }).catch(()=>{})});
+}
+if(W) requestWake();
+</script>
+</body>
+</html>
