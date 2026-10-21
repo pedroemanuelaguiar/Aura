@@ -37,7 +37,6 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         getWindow().setStatusBarColor(0xFF15171B);
         getWindow().setNavigationBarColor(0xFF15171B);
 
@@ -98,7 +97,27 @@ public class MainActivity extends Activity {
 
     static class Bridge {
         private final Context ctx;
-        Bridge(Context c) { ctx = c.getApplicationContext(); }
+        private final Activity act;
+        Bridge(Activity a) { act = a; ctx = a.getApplicationContext(); }
+
+        /** Durante o treino: tela sempre acesa e app por cima da tela de bloqueio. */
+        @JavascriptInterface
+        public void workoutMode(final boolean on) {
+            act.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    int keep = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON;
+                    if (on) act.getWindow().addFlags(keep); else act.getWindow().clearFlags(keep);
+                    if (Build.VERSION.SDK_INT >= 27) {
+                        act.setShowWhenLocked(on);
+                        act.setTurnScreenOn(on);
+                    } else {
+                        int f = WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON;
+                        if (on) act.getWindow().addFlags(f); else act.getWindow().clearFlags(f);
+                    }
+                }
+            });
+        }
 
         @JavascriptInterface
         public String saveBackup(String name, String json) {

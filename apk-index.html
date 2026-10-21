@@ -1088,11 +1088,13 @@ function burstAt(r,text){
 }
 /* transição entre telas */
 (function(){
-  const base=render; let lastKey=null;
+  const base=render; let lastKey=null, lastWM=null;
   render=function(){
     base();
     const k=W?(W.summary?"sum":W.rest?"rest":"ex"+W.exIdx):tab+"|"+(editDay||"");
     if(k!==lastKey){lastKey=k;view.classList.remove("enter");void view.offsetWidth;view.classList.add("enter")}
+    const on=!!W;
+    if(on!==lastWM&&window.AuraAndroid&&AuraAndroid.workoutMode){lastWM=on;try{AuraAndroid.workoutMode(on)}catch(e){}}
   };
 })();
 
