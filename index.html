@@ -490,6 +490,7 @@ function P(){return {name:W.dayName||(PLAN[W.day]&&PLAN[W.day].name)||'',ex:W.ex
 function curEx(){return P().ex[W.exIdx]}
 function defaultsFor(ex,setIdx){
   const done=W.log[ex.id]||[];
+  if(W.redo&&W.redo.id===ex.id&&W.redo.i===setIdx) return {w:W.redo.w,r:W.redo.r};
   const prev=lastSets(ex.id,unitOf(ex));
   if(done.length) return {w:done[done.length-1].w,r:(prev&&prev[setIdx])?prev[setIdx].r:done[done.length-1].r};
   if(prev){const s=prev[Math.min(setIdx,prev.length-1)];let w=s.w;
@@ -516,7 +517,7 @@ function renderWorkout(){
       <div class="seg" role="group" aria-label="Unidade da carga"><button data-unit="kg" aria-pressed="${u==="kg"}">kg</button><button data-unit="placa" aria-pressed="${u==="placa"}">placa</button></div></div>
     <div class="setdots">${Array.from({length:ex.sets},(_,i)=>`<i class="${i<setIdx?"done":i===setIdx?"cur":""}"></i>`).join("")}</div>
     <div class="target">
-      <div><span class="eyebrow">Série</span><b class="num">${Math.min(setIdx+1,ex.sets)} de ${ex.sets}</b></div>
+      <div><span class="eyebrow">${W.redo&&W.redo.id===ex.id&&W.redo.i===setIdx?"Corrigindo série":"Série"}</span><b class="num">${Math.min(setIdx+1,ex.sets)} de ${ex.sets}</b></div>
       <div><span class="eyebrow">Meta</span><b class="num">${ex.min}–${ex.max} reps</b></div>
     </div>
     ${prev?`<div class="last muted">Última vez: <span class="num">${prev.map(s=>`${wLabel(s.w,u)} × ${s.r}`).join(" · ")}</span></div>`:""}
@@ -531,7 +532,7 @@ function renderWorkout(){
   `<button class="btn primary block" id="nextEx">${W.exIdx<p.ex.length-1?"Próximo exercício":"Ver resumo do treino"}</button>`}
   ${done.length?`<div class="logged">${done.map((s,i)=>`<span class="num">S${i+1}: ${wLabel(s.w,u)} × ${s.r}</span>`).join("")}<button class="linkbtn" id="undo">Desfazer última</button></div>`:""}
   <div class="row between">
-    <button class="linkbtn" id="skip">${W.exIdx<p.ex.length-1?"Pular exercício":""}</button>
+    <div class="row" style="gap:10px">${W.exIdx>0?`<button class="linkbtn" id="prevEx">‹ Anterior</button>`:""}<button class="linkbtn" id="skip">${W.exIdx<p.ex.length-1?"Pular exercício":""}</button></div>
     <span class="muted num" style="font-size:12px">Descanso: ${ex.rest>=60?Math.floor(ex.rest/60)+"min"+(ex.rest%60?" "+ex.rest%60+"s":""):ex.rest+"s"}</span>
   </div>`;
   view.querySelectorAll("[data-unit]").forEach(b=>b.onclick=()=>{const nu=b.dataset.unit;if(nu===u)return;ex.unit=nu;if(nu==="placa"&&ex.step>2)ex.step=1;if(nu==="kg"&&ex.step<2)ex.step=2.5;
@@ -541,6 +542,7 @@ function renderWorkout(){
   const ls=$("#logSet"); if(ls) ls.onclick=logSet;
   const ne=$("#nextEx"); if(ne) ne.onclick=advance;
   const un=$("#undo"); if(un) un.onclick=()=>{W.log[ex.id].pop();saveW();render()};
+  const pe=$("#prevEx"); if(pe) pe.onclick=()=>{W.redo=null;W.exIdx=Math.max(0,W.exIdx-1);saveW();render()};
   const sk=$("#skip"); if(sk) sk.onclick=()=>{if(W.exIdx<p.ex.length-1){W.exIdx++;saveW();render()}};
   $("#finish").onclick=()=>{W.summary=true;W.rest=null;saveW();render()};
 }
@@ -553,7 +555,7 @@ function logSet(){
   const btnR=$("#logSet")?$("#logSet").getBoundingClientRect():null;
   const prevSets=lastSets(ex.id,unitOf(ex)), si=(W.log[ex.id]||[]).length;
   const pv=prevSets&&prevSets[si]?setVol(prevSets[si]):null, nv=setVol({w,r});
-  (W.log[ex.id]=W.log[ex.id]||[]).push({w,r});
+  (W.log[ex.id]=W.log[ex.id]||[]).push({w,r}); W.redo=null;
   const beat=pv!==null&&nv>pv;
   if(beat){const lb=$("#logSet");if(lb){lb.disabled=true;lb.classList.add("hit")}burstAt(btnR,`+${fmt(nv-pv)} ${volUnit(unitOf(ex))}`)}
   const done=W.log[ex.id].length;
@@ -564,7 +566,7 @@ function logSet(){
   if(isLastSet){
     const h=exHist(ex.id,unitOf(ex)), prevVol=h.length?h[h.length-1].vol:null, now=exVol(W.log[ex.id]);
     const after=()=>{ if(isLastEx){W.summary=true;saveW();render()} else {startRest(ex.rest,true)} };
-    if(prevVol!==null && now>prevVol && !W.celebrated[ex.id]){W.celebrated[ex.id]=true;saveW();celebrate(ex,h,now,prevVol,after)}
+    if(prevVol!==null && now>prevVol && !W.celebrated[ex.id] && !document.hidden){W.celebrated[ex.id]=true;saveW();celebrate(ex,h,now,prevVol,after)}
     else after();
   } else startRest(ex.rest,false);
   };
@@ -587,6 +589,7 @@ function renderRest(){
       <div class="t num" id="tleft">0:00</div></div>
     <div><div class="muted" style="font-size:13px">${nextLabel}</div><div style="font-weight:800;font-size:18px">${esc(nextName||"")}</div></div>
     <div class="acts"><button class="btn ghost" id="m15">−15s</button><button class="btn ghost" id="p15">+15s</button><button class="btn primary" id="go">Bora</button></div>
+    <button class="linkbtn" id="back">‹ Voltar para a série ${(W.log[ex.id]||[]).length}</button>
   </div>`;
   const tick=()=>{
     if(!W||!W.rest){clearInterval(restTimer);return}
@@ -601,6 +604,13 @@ function renderRest(){
   $("#m15").onclick=()=>{W.rest.end-=15000;W.rest.beeped=false;saveW();tick()};
   $("#p15").onclick=()=>{W.rest.end+=15000;W.rest.total+=15;W.rest.beeped=false;saveW();tick()};
   $("#go").onclick=endRest;
+  $("#back").onclick=backToSet;
+}
+/* Volta da tela de descanso para a série que acabou de ser registrada, com os valores preenchidos para corrigir. */
+function backToSet(){
+  clearInterval(restTimer); const ex=curEx(), log=W.log[ex.id]||[];
+  const s=log.pop(); W.rest=null; W.redo=s?{id:ex.id,i:log.length,w:s.w,r:s.r}:null;
+  saveW(); render(); window.scrollTo(0,0);
 }
 function endRest(){clearInterval(restTimer);const n=W.rest.thenNext;W.rest=null;if(n)W.exIdx=Math.min(W.exIdx+1,P().ex.length-1);saveW();render();window.scrollTo(0,0)}
 function beep(){

@@ -27,7 +27,7 @@ cp anton.woff2 figtree-*.woff2 "$W/assets/"
 
 # Código Java
 javac -source 8 -target 8 -bootclasspath "$JAR" -nowarn -d "$W/classes" \
-  MainActivity.java $(find "$W/gen" -name '*.java')
+  MainActivity.java RestService.java RestAlarm.java $(find "$W/gen" -name '*.java')
 "$BT/d8" --lib "$JAR" --min-api 26 --output "$W/dex" $(find "$W/classes" -name '*.class')
 (cd "$W/dex" && zip -q ../base.apk classes.dex)
 

@@ -15,6 +15,9 @@ import android.os.Environment;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.provider.MediaStore;
+import android.provider.Settings;
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -33,10 +36,13 @@ public class MainActivity extends Activity {
     private static final int PICK_FILE = 1;
     private WebView web;
     private ValueCallback<Uri[]> fileCallback;
+    static MainActivity current;
+    static boolean visible;
 
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        current = this;
         getWindow().setStatusBarColor(0xFF15171B);
         getWindow().setNavigationBarColor(0xFF15171B);
 
@@ -84,6 +90,37 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        visible = true;
+        RestService.visibilityChanged();
+        if (web != null) web.evaluateJavascript("document.getElementById('float')&&render()", null);
+    }
+
+    @Override
+    protected void onPause() {
+        visible = false;
+        RestService.visibilityChanged();
+        super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (current == this) current = null;
+        super.onDestroy();
+    }
+
+    /** Botão da janela flutuante / notificação. */
+    void runPrimary() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (web != null) web.evaluateJavascript("window.auraPrimary&&auraPrimary()", null);
+            }
+        });
+    }
+
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode != PICK_FILE || fileCallback == null) return;
@@ -106,6 +143,10 @@ public class MainActivity extends Activity {
             act.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    if (on && Build.VERSION.SDK_INT >= 33
+                            && act.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                        act.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 2);
+                    }
                     int keep = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON;
                     if (on) act.getWindow().addFlags(keep); else act.getWindow().clearFlags(keep);
                     if (Build.VERSION.SDK_INT >= 27) {
@@ -117,6 +158,27 @@ public class MainActivity extends Activity {
                     }
                 }
             });
+        }
+
+        /** Estado do treino para o timer nativo (notificação, alarme e janela flutuante). */
+        @JavascriptInterface
+        public void restState(String json) {
+            RestService.update(ctx, json);
+        }
+
+        @JavascriptInterface
+        public boolean canOverlay() {
+            return RestService.canOverlay(ctx);
+        }
+
+        @JavascriptInterface
+        public void openOverlaySettings() {
+            try {
+                Intent i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + ctx.getPackageName()));
+                act.startActivity(i);
+            } catch (Exception e) {
+                try { act.startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)); } catch (Exception ignored) {}
+            }
         }
 
         @JavascriptInterface

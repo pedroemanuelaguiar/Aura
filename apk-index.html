@@ -521,6 +521,7 @@ function P(){return {name:W.dayName||(PLAN[W.day]&&PLAN[W.day].name)||'',ex:W.ex
 function curEx(){return P().ex[W.exIdx]}
 function defaultsFor(ex,setIdx){
   const done=W.log[ex.id]||[];
+  if(W.redo&&W.redo.id===ex.id&&W.redo.i===setIdx) return {w:W.redo.w,r:W.redo.r};
   const prev=lastSets(ex.id,unitOf(ex));
   if(done.length) return {w:done[done.length-1].w,r:(prev&&prev[setIdx])?prev[setIdx].r:done[done.length-1].r};
   if(prev){const s=prev[Math.min(setIdx,prev.length-1)];let w=s.w;
@@ -547,7 +548,7 @@ function renderWorkout(){
       <div class="seg" role="group" aria-label="Unidade da carga"><button data-unit="kg" aria-pressed="${u==="kg"}">kg</button><button data-unit="placa" aria-pressed="${u==="placa"}">placa</button></div></div>
     <div class="setdots">${Array.from({length:ex.sets},(_,i)=>`<i class="${i<setIdx?"done":i===setIdx?"cur":""}"></i>`).join("")}</div>
     <div class="target">
-      <div><span class="eyebrow">Série</span><b class="num">${Math.min(setIdx+1,ex.sets)} de ${ex.sets}</b></div>
+      <div><span class="eyebrow">${W.redo&&W.redo.id===ex.id&&W.redo.i===setIdx?"Corrigindo série":"Série"}</span><b class="num">${Math.min(setIdx+1,ex.sets)} de ${ex.sets}</b></div>
       <div><span class="eyebrow">Meta</span><b class="num">${ex.min}–${ex.max} reps</b></div>
     </div>
     ${prev?`<div class="last muted">Última vez: <span class="num">${prev.map(s=>`${wLabel(s.w,u)} × ${s.r}`).join(" · ")}</span></div>`:""}
@@ -562,16 +563,19 @@ function renderWorkout(){
   `<button class="btn primary block" id="nextEx">${W.exIdx<p.ex.length-1?"Próximo exercício":"Ver resumo do treino"}</button>`}
   ${done.length?`<div class="logged">${done.map((s,i)=>`<span class="num">S${i+1}: ${wLabel(s.w,u)} × ${s.r}</span>`).join("")}<button class="linkbtn" id="undo">Desfazer última</button></div>`:""}
   <div class="row between">
-    <button class="linkbtn" id="skip">${W.exIdx<p.ex.length-1?"Pular exercício":""}</button>
+    <div class="row" style="gap:10px">${W.exIdx>0?`<button class="linkbtn" id="prevEx">‹ Anterior</button>`:""}<button class="linkbtn" id="skip">${W.exIdx<p.ex.length-1?"Pular exercício":""}</button></div>
     <span class="muted num" style="font-size:12px">Descanso: ${ex.rest>=60?Math.floor(ex.rest/60)+"min"+(ex.rest%60?" "+ex.rest%60+"s":""):ex.rest+"s"}</span>
-  </div>`;
+  </div>
+  ${canFloat()===false?`<button class="linkbtn" id="float" style="align-self:center">Ativar timer flutuante (para usar junto com o YouTube)</button>`:""}`;
+  const fl=$("#float"); if(fl) fl.onclick=()=>{try{AuraAndroid.openOverlaySettings()}catch(e){}};
   view.querySelectorAll("[data-unit]").forEach(b=>b.onclick=()=>{const nu=b.dataset.unit;if(nu===u)return;ex.unit=nu;if(nu==="placa"&&ex.step>2)ex.step=1;if(nu==="kg"&&ex.step<2)ex.step=2.5;
     ORDER.forEach(dd=>PLAN[dd].ex.forEach(e=>{if(e.id===ex.id){e.unit=nu;e.step=ex.step}}));savePlan();saveW();render();toast(nu==="placa"?"Agora esse exercício é registrado pelo número da placa.":"Agora esse exercício é registrado em kg.")});
   view.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{W.exIdx=+b.dataset.go;saveW();render()});
-  view.querySelectorAll("[data-adj]").forEach(b=>b.onclick=()=>{const inp=$("#"+b.dataset.adj);let v=parseFloat(String(inp.value).replace(",","."))||0;v=Math.max(0,+(v+parseFloat(b.dataset.v)).toFixed(2));inp.value=b.dataset.adj==="w"?fmt(v):Math.round(v)});
+  view.querySelectorAll("[data-adj]").forEach(b=>b.onclick=()=>{const inp=$("#"+b.dataset.adj);let v=parseFloat(String(inp.value).replace(",","."))||0;v=Math.max(0,+(v+parseFloat(b.dataset.v)).toFixed(2));inp.value=b.dataset.adj==="w"?fmt(v):Math.round(v);syncNative()});
   const ls=$("#logSet"); if(ls) ls.onclick=logSet;
   const ne=$("#nextEx"); if(ne) ne.onclick=advance;
   const un=$("#undo"); if(un) un.onclick=()=>{W.log[ex.id].pop();saveW();render()};
+  const pe=$("#prevEx"); if(pe) pe.onclick=()=>{W.redo=null;W.exIdx=Math.max(0,W.exIdx-1);saveW();render()};
   const sk=$("#skip"); if(sk) sk.onclick=()=>{if(W.exIdx<p.ex.length-1){W.exIdx++;saveW();render()}};
   $("#finish").onclick=()=>{W.summary=true;W.rest=null;saveW();render()};
 }
@@ -584,7 +588,7 @@ function logSet(){
   const btnR=$("#logSet")?$("#logSet").getBoundingClientRect():null;
   const prevSets=lastSets(ex.id,unitOf(ex)), si=(W.log[ex.id]||[]).length;
   const pv=prevSets&&prevSets[si]?setVol(prevSets[si]):null, nv=setVol({w,r});
-  (W.log[ex.id]=W.log[ex.id]||[]).push({w,r});
+  (W.log[ex.id]=W.log[ex.id]||[]).push({w,r}); W.redo=null;
   const beat=pv!==null&&nv>pv;
   if(beat){const lb=$("#logSet");if(lb){lb.disabled=true;lb.classList.add("hit")}burstAt(btnR,`+${fmt(nv-pv)} ${volUnit(unitOf(ex))}`)}
   const done=W.log[ex.id].length;
@@ -595,7 +599,7 @@ function logSet(){
   if(isLastSet){
     const h=exHist(ex.id,unitOf(ex)), prevVol=h.length?h[h.length-1].vol:null, now=exVol(W.log[ex.id]);
     const after=()=>{ if(isLastEx){W.summary=true;saveW();render()} else {startRest(ex.rest,true)} };
-    if(prevVol!==null && now>prevVol && !W.celebrated[ex.id]){W.celebrated[ex.id]=true;saveW();celebrate(ex,h,now,prevVol,after)}
+    if(prevVol!==null && now>prevVol && !W.celebrated[ex.id] && !document.hidden){W.celebrated[ex.id]=true;saveW();celebrate(ex,h,now,prevVol,after)}
     else after();
   } else startRest(ex.rest,false);
   };
@@ -618,6 +622,7 @@ function renderRest(){
       <div class="t num" id="tleft">0:00</div></div>
     <div><div class="muted" style="font-size:13px">${nextLabel}</div><div style="font-weight:800;font-size:18px">${esc(nextName||"")}</div></div>
     <div class="acts"><button class="btn ghost" id="m15">−15s</button><button class="btn ghost" id="p15">+15s</button><button class="btn primary" id="go">Bora</button></div>
+    <button class="linkbtn" id="back">‹ Voltar para a série ${(W.log[ex.id]||[]).length}</button>
   </div>`;
   const tick=()=>{
     if(!W||!W.rest){clearInterval(restTimer);return}
@@ -629,13 +634,20 @@ function renderRest(){
     if(left===0 && !W.rest.beeped){W.rest.beeped=true;saveW();beep()}
   };
   clearInterval(restTimer); tick(); restTimer=setInterval(tick,250);
-  $("#m15").onclick=()=>{W.rest.end-=15000;W.rest.beeped=false;saveW();tick()};
-  $("#p15").onclick=()=>{W.rest.end+=15000;W.rest.total+=15;W.rest.beeped=false;saveW();tick()};
+  $("#m15").onclick=()=>{W.rest.end-=15000;W.rest.beeped=false;saveW();tick();syncNative()};
+  $("#p15").onclick=()=>{W.rest.end+=15000;W.rest.total+=15;W.rest.beeped=false;saveW();tick();syncNative()};
   $("#go").onclick=endRest;
+  $("#back").onclick=backToSet;
+}
+/* Volta da tela de descanso para a série que acabou de ser registrada, com os valores preenchidos para corrigir. */
+function backToSet(){
+  clearInterval(restTimer); const ex=curEx(), log=W.log[ex.id]||[];
+  const s=log.pop(); W.rest=null; W.redo=s?{id:ex.id,i:log.length,w:s.w,r:s.r}:null;
+  saveW(); render(); window.scrollTo(0,0);
 }
 function endRest(){clearInterval(restTimer);const n=W.rest.thenNext;W.rest=null;if(n)W.exIdx=Math.min(W.exIdx+1,P().ex.length-1);saveW();render();window.scrollTo(0,0)}
 function beep(){
-  try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+  if(!hasNative()) try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
   try{if(!audioCtx)return;const t=audioCtx.currentTime;[0,.22,.44].forEach((o,i)=>{const g=audioCtx.createGain(),os=audioCtx.createOscillator();os.frequency.value=i===2?1175:880;g.gain.setValueAtTime(.0001,t+o);g.gain.exponentialRampToValueAtTime(.3,t+o+.02);g.gain.exponentialRampToValueAtTime(.0001,t+o+.18);os.connect(g).connect(audioCtx.destination);os.start(t+o);os.stop(t+o+.2)})}catch(e){}
 }
 
@@ -1086,6 +1098,41 @@ function burstAt(r,text){
   requestAnimationFrame(step);
   setTimeout(()=>{c.clearRect(0,0,innerWidth,innerHeight);cv.hidden=true},2600);
 }
+/* ============ TIMER NO ANDROID (fundo, notificação e janela flutuante) ============ */
+const hasNative=()=>!!(window.AuraAndroid&&AuraAndroid.restState);
+function canFloat(){try{return window.AuraAndroid&&AuraAndroid.canOverlay?!!AuraAndroid.canOverlay():null}catch(e){return null}}
+/* O que o botão da janela flutuante vai registrar: os valores da tela, ou a sugestão do app. */
+function nextSetPreview(){
+  const p=P(); let ex=curEx(), done=W.log[ex.id]||[];
+  if(done.length>=ex.sets){ if(W.exIdx>=p.ex.length-1) return null; ex=p.ex[W.exIdx+1]; done=W.log[ex.id]||[]; }
+  const u=unitOf(ex), d=defaultsFor(ex,done.length);
+  let w=d.w, r=d.r;
+  const wi=$("#w"), ri=$("#r");
+  if(wi&&ri&&ex===curEx()){w=parseFloat(String(wi.value).replace(",","."))||0; r=parseInt(ri.value)||r}
+  return {name:ex.name, set:`Série ${done.length+1} de ${ex.sets}`, load:`${wLabel(w,u)} × ${r}`};
+}
+function syncNative(){
+  if(!hasNative()) return;
+  let st={mode:"off"};
+  if(W&&W.summary) st={mode:"done",title:"Treino concluído",sub:"Toque para ver o resumo"};
+  else if(W){
+    const n=nextSetPreview();
+    st={mode:W.rest?"rest":"set", end:W.rest?W.rest.end:0, total:W.rest?W.rest.total:0,
+        name:n?n.name:"", set:n?n.set:"", load:n?n.load:""};
+  }
+  try{AuraAndroid.restState(JSON.stringify(st))}catch(e){}
+}
+/* Botão da janela flutuante e da notificação: registra a série e começa o descanso. */
+window.auraPrimary=function(){
+  if(!W||W.summary) return;
+  if(W.rest){ if(W.rest.end>Date.now()) return; endRest(); }
+  const ex=curEx();
+  if((W.log[ex.id]||[]).length>=ex.sets) advance();
+  if(W.summary||W.rest) return;
+  if($("#logSet")) logSet();
+};
+document.addEventListener("input",e=>{if(W&&e.target&&(e.target.id==="w"||e.target.id==="r"))syncNative()});
+
 /* transição entre telas */
 (function(){
   const base=render; let lastKey=null, lastWM=null;
@@ -1095,6 +1142,7 @@ function burstAt(r,text){
     if(k!==lastKey){lastKey=k;view.classList.remove("enter");void view.offsetWidth;view.classList.add("enter")}
     const on=!!W;
     if(on!==lastWM&&window.AuraAndroid&&AuraAndroid.workoutMode){lastWM=on;try{AuraAndroid.workoutMode(on)}catch(e){}}
+    syncNative();
   };
 })();
 
