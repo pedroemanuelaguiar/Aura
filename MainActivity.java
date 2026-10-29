@@ -43,6 +43,8 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         current = this;
+        // Se o app foi reaberto no meio de um treino, já volta por cima da tela de bloqueio.
+        if (getSharedPreferences("aura", MODE_PRIVATE).getBoolean("workout", false)) applyWorkoutMode(this, true);
         getWindow().setStatusBarColor(0xFF15171B);
         getWindow().setNavigationBarColor(0xFF15171B);
 
@@ -110,6 +112,18 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 
+    static void applyWorkoutMode(Activity act, boolean on) {
+        int keep = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON;
+        if (on) act.getWindow().addFlags(keep); else act.getWindow().clearFlags(keep);
+        if (Build.VERSION.SDK_INT >= 27) {
+            act.setShowWhenLocked(on);
+            act.setTurnScreenOn(on);
+        } else {
+            int f = WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON;
+            if (on) act.getWindow().addFlags(f); else act.getWindow().clearFlags(f);
+        }
+    }
+
     /** Botão da janela flutuante / notificação. */
     void runPrimary() {
         runOnUiThread(new Runnable() {
@@ -147,15 +161,8 @@ public class MainActivity extends Activity {
                             && act.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                         act.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 2);
                     }
-                    int keep = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON;
-                    if (on) act.getWindow().addFlags(keep); else act.getWindow().clearFlags(keep);
-                    if (Build.VERSION.SDK_INT >= 27) {
-                        act.setShowWhenLocked(on);
-                        act.setTurnScreenOn(on);
-                    } else {
-                        int f = WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON;
-                        if (on) act.getWindow().addFlags(f); else act.getWindow().clearFlags(f);
-                    }
+                    act.getSharedPreferences("aura", MODE_PRIVATE).edit().putBoolean("workout", on).apply();
+                    applyWorkoutMode(act, on);
                 }
             });
         }

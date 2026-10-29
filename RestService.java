@@ -6,7 +6,11 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.app.KeyguardManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.IntentFilter;
+import android.os.PowerManager;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
 import android.graphics.PixelFormat;
@@ -48,6 +52,20 @@ public class RestService extends Service {
     private LinearLayout bubble;
     private TextView bubbleTime, bubbleSub, bubbleBtn;
     private String lastPhase = "";
+
+    /** Tela ligou com o celular bloqueado: traz o treino por cima da tela de bloqueio. */
+    private final BroadcastReceiver screen = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context c, Intent i) {
+            refresh(false);
+            if (!Intent.ACTION_SCREEN_ON.equals(i.getAction()) || "off".equals(mode) || MainActivity.visible) return;
+            KeyguardManager km = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+            if (km == null || !km.isKeyguardLocked()) return;
+            Intent a = new Intent(RestService.this, MainActivity.class);
+            a.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            try { startActivity(a); } catch (Exception ignored) {}
+        }
+    };
 
     /** Chamado pela página sempre que o treino muda. */
     static void update(final Context ctx, String json) {
@@ -122,6 +140,9 @@ public class RestService extends Service {
         super.onCreate();
         instance = this;
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
+        IntentFilter f = new IntentFilter(Intent.ACTION_SCREEN_ON);
+        f.addAction(Intent.ACTION_SCREEN_OFF);
+        registerReceiver(screen, f);
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationChannel ch = new NotificationChannel(CHANNEL, "Treino em andamento", NotificationManager.IMPORTANCE_LOW);
             ch.setShowBadge(false);
@@ -165,7 +186,9 @@ public class RestService extends Service {
             NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             if (nm != null) nm.notify(NOTIF_ID, buildNotification());
         }
-        boolean show = !MainActivity.visible && canOverlay(this);
+        PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+        boolean screenOn = pm == null || pm.isInteractive();
+        boolean show = screenOn && !MainActivity.visible && canOverlay(this);
         if (show) showBubble(ph); else hideBubble();
     }
 
@@ -337,6 +360,7 @@ public class RestService extends Service {
     @Override
     public void onDestroy() {
         handler.removeCallbacks(ticker);
+        try { unregisterReceiver(screen); } catch (Exception ignored) {}
         hideBubble();
         if (instance == this) instance = null;
         super.onDestroy();
