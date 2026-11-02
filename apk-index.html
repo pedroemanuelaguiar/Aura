@@ -103,7 +103,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
 
 /* tabs */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:8px max(16px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
-nav.tabs .in{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+nav.tabs .in{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 nav.tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px;border-radius:12px;font-size:12px;font-weight:700;color:var(--muted)}
 nav.tabs button svg{width:22px;height:22px}
 nav.tabs button[aria-current="page"]{color:var(--fg);background:var(--surface)}
@@ -244,6 +244,19 @@ nav.tabs button[aria-current="page"] svg{transform:translateY(-2px) scale(1.08)}
 @media (prefers-reduced-motion:reduce){.view.enter>*,.pop,.exbody,.toast,.burst-txt{animation:none}button:active{transform:none}}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);font-weight:700;padding:10px 16px;border-radius:12px;z-index:70;font-size:14px;max-width:calc(100% - 32px)}
 .note{font-size:12px;color:var(--muted);text-align:center}
+/* dieta */
+.macros{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.macros>div{background:var(--surface-2);border-radius:12px;padding:10px;min-width:0}
+.macros>div>span{display:block;font-size:11px;color:var(--muted);font-weight:700}
+.macros>div>b{display:block;font-family:var(--display);font-size:22px;font-weight:400}
+.mbar{height:4px;border-radius:2px;background:var(--bg);margin-top:6px;overflow:hidden}
+.mbar i{display:block;height:100%;background:var(--flame)}
+.foods{display:flex;flex-direction:column;margin-top:8px}
+.food{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px;min-height:44px}
+.food:last-child{border-bottom:0}
+.food b{color:var(--fg)}
+.tips{margin:6px 0 0;padding-left:18px;display:grid;gap:4px}
+.seg.wide button{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -262,6 +275,8 @@ nav.tabs button[aria-current="page"] svg{transform:translateY(-2px) scale(1.08)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18M5 16l4-5 4 3 6-8"/><path d="M15 6h4v4"/></svg>Progresso</button>
     <button data-tab="plan">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Plano</button>
+    <button data-tab="diet">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7c-3-2.5-8-1.5-8 4 0 5 3.5 10 6 10 1 0 1.3-.5 2-.5s1 .5 2 .5c2.5 0 6-5 6-10 0-5.5-5-6.5-8-4z"/><path d="M12 7c0-2 1-4 3-4.5"/></svg>Dieta</button>
   </div>
 </nav>
 <canvas id="confetti" hidden></canvas>
@@ -430,6 +445,7 @@ function render(){
   if(W){ renderWorkout(); return }
   if(tab==="home") renderHome(st);
   else if(tab==="progress") renderProgress();
+  else if(tab==="diet") renderDiet();
   else renderPlan();
 }
 
@@ -999,7 +1015,7 @@ function renderPlan(){
 }
 function lastBackupTxt(){const t=LS.get("fa.lastBackup",null);if(!t)return "Você ainda não fez nenhum backup.";const d=Math.floor((Date.now()-t)/864e5);return d===0?"Último backup: hoje.":`Último backup: há ${d} dia${d>1?"s":""}.`}
 async function exportBackup(){
-  const data={app:"farmando-aura",version:1,exported:new Date().toISOString(),plan:PLAN,sessions};
+  const data={app:"farmando-aura",version:1,exported:new Date().toISOString(),plan:PLAN,sessions,diet:DIET};
   const name=`farmando-aura-backup-${dayStr(new Date())}.json`;
   if(window.AuraAndroid){
     let r="erro"; try{r=AuraAndroid.saveBackup(name,JSON.stringify(data))}catch(e){}
@@ -1024,6 +1040,7 @@ async function importBackup(f){
     data.sessions.forEach(s=>{if(s&&s.id&&s.log&&!ids.has(s.id)){sessions.push(s);added++}});
     sessions.sort((a,b)=>a.date.localeCompare(b.date)); LS.set("fa.sessions",sessions);
     if(data.plan&&ORDER.every(k=>data.plan[k]&&Array.isArray(data.plan[k].ex))){PLAN=clone(data.plan);savePlan()}
+    if(data.diet&&data.diet.weight&&data.diet.height){DIET=clone(data.diet);saveDiet()}
     render(); toast(`Backup importado: ${added} treino${added===1?"":"s"} novo${added===1?"":"s"}.`);
   }catch(e){toast("Esse arquivo não é um backup do Farmando Aura.")}
 }
@@ -1073,6 +1090,169 @@ function renderEditor(){
     setTimeout(()=>{if(!draft)return;const inp=$("#n"+(draft.ex.length-1));if(inp){inp.scrollIntoView({block:"center"});inp.select()}},0)};
   $("#cancel").onclick=()=>{editDay=null;draft=null;render();window.scrollTo(0,0)};
   $("#saveplan").onclick=()=>{sync();PLAN[d]=draft;savePlan();editDay=null;draft=null;render();window.scrollTo(0,0);toast(`Treino ${d} salvo.`)};
+}
+
+/* ============ DIETA ============ */
+/* Metas calculadas a partir dos dados do usuário (Mifflin-St Jeor) e um cardápio montado com porções que batem as metas.
+   Não há registro diário: o usuário só segue o cardápio e ajusta as calorias se o peso não andar. */
+/* Valores por 100 g (ou por unidade, quando "un" existe), aproximados da tabela TACO. */
+const FOODS={
+  frango:{n:"Peito de frango grelhado",p:32,c:0,g:2.5,step:10},
+  patinho:{n:"Patinho moído refogado",p:34,c:0,g:8,step:10},
+  tilapia:{n:"Tilápia grelhada",p:26,c:0,g:2.7,step:10},
+  atum:{n:"Atum em lata (em água)",p:26,c:0,g:1,step:10},
+  ovo:{n:"Ovo",un:["ovo","ovos"],p:6.5,c:.5,g:5,min:1,max:6},
+  whey:{n:"Whey protein",un:["scoop de whey (30 g)","scoops de whey (30 g)"],p:24,c:2,g:1.5,step:.5,min:.5,max:2},
+  cottage:{n:"Queijo cottage",p:11,c:3,g:4,step:10},
+  iogurte:{n:"Iogurte natural desnatado",p:4,c:6,g:.2,step:10},
+  leite:{n:"Leite desnatado",ml:true,p:3.3,c:5,g:.1,step:50},
+  arroz:{n:"Arroz branco cozido",p:2.5,c:28,g:.2,step:10},
+  macarrao:{n:"Macarrão cozido",p:5,c:30,g:.9,step:10},
+  batata:{n:"Batata-doce cozida",p:.6,c:18.4,g:.1,step:10},
+  aveia:{n:"Aveia em flocos",p:14,c:57,g:8,step:5},
+  paof:{n:"Pão francês",un:["pão francês","pães franceses"],p:4,c:29,g:1.5,min:1,max:4},
+  paoi:{n:"Pão integral",un:["fatia de pão integral","fatias de pão integral"],p:3,c:12,g:1,min:1,max:6},
+  tapioca:{n:"Tapioca (goma)",p:0,c:54,g:0,step:10},
+  cuscuz:{n:"Cuscuz de milho cozido",p:2.2,c:25,g:.7,step:10},
+  banana:{n:"Banana",un:["banana","bananas"],p:1,c:18,g:.1,min:1,max:3},
+  feijao:{n:"Feijão cozido",p:4.8,c:13.6,g:.5},
+  maca:{n:"Maçã",un:["maçã","maçãs"],p:.4,c:20,g:.2},
+  amendoim:{n:"Pasta de amendoim",p:25,c:20,g:50},
+  azeite:{n:"Azeite",p:0,c:0,g:100}
+};
+/* Refeições: fonte de proteína e de carboidrato trocáveis, mais itens fixos. ps/cs = fatia das metas do dia. */
+const MEALS4=[
+  {k:"cafe",n:"Café da manhã",pr:["ovo","whey","cottage"],cb:["paof","paoi","tapioca","cuscuz","aveia"],fx:[["banana",1]],ps:.25,cs:.25},
+  {k:"almoco",n:"Almoço",pr:["frango","patinho","tilapia","ovo"],cb:["arroz","macarrao","batata"],fx:[["feijao",100]],veg:true,oil:true,ps:.3,cs:.3},
+  {k:"lanche",n:"Lanche pré-treino",pr:["whey","iogurte","atum","ovo"],cb:["aveia","paoi","banana","tapioca"],fx:[["amendoim",15]],ps:.2,cs:.25},
+  {k:"jantar",n:"Jantar",pr:["frango","patinho","tilapia","atum"],cb:["arroz","batata","macarrao","cuscuz"],veg:true,oil:true,ps:.25,cs:.2}
+];
+const MEALS5=[
+  {...MEALS4[0],ps:.2,cs:.22},{...MEALS4[1],ps:.25,cs:.27},{...MEALS4[2],ps:.2,cs:.25},{...MEALS4[3],ps:.2,cs:.18},
+  {k:"ceia",n:"Ceia",pr:["cottage","leite","iogurte","ovo"],cb:["aveia","banana","maca"],ps:.15,cs:.08}
+];
+const ACTS=[{v:1.45,n:"Parado",d:"Trabalho sentado, anda pouco"},{v:1.6,n:"Moderado",d:"Em pé parte do dia ou anda bastante"},{v:1.75,n:"Ativo",d:"Trabalho físico ou muitos passos"}];
+const GOALS=[{v:"lean",n:"Ganho limpo",kcal:250,d:"Ganhar uns 0,25 a 0,5% do peso por semana, com pouca gordura"},{v:"fast",n:"Ganho rápido",kcal:450,d:"Mais massa, aceitando um pouco de gordura"},{v:"recomp",n:"Recomposição",kcal:0,d:"Manter o peso, perder gordura e ganhar músculo devagar"}];
+
+let DIET=LS.get("fa.diet",null);
+let dietEdit=false, dietDraft=null;
+const saveDiet=()=>LS.set("fa.diet",DIET);
+
+function dietTargets(d){
+  const bmr=10*d.weight+6.25*d.height-5*d.age+(d.sex==="f"?-161:5);
+  const goal=GOALS.find(g=>g.v===d.goal)||GOALS[0];
+  const tdee=bmr*d.act;
+  const kcal=Math.round((tdee+goal.kcal+(d.adj||0))/10)*10;
+  const p=Math.round(d.weight*2), g=Math.round(d.weight*.9);
+  const c=Math.max(0,Math.round((kcal-p*4-g*9)/4));
+  return {bmr:Math.round(bmr),tdee:Math.round(tdee),kcal,p,g,c,goal};
+}
+/* Quantidade "q": gramas/ml para alimentos por 100 g, unidades para os demais. */
+const fMac=(id,q)=>{const f=FOODS[id],k=f.un?q:q/100;return {p:f.p*k,c:f.c*k,g:f.g*k}};
+const fRound=(id,q)=>{const f=FOODS[id];const st=f.step||1;let v=Math.round(q/st)*st;if(f.min!=null)v=Math.max(f.min,v);if(f.max!=null)v=Math.min(f.max,v);return Math.max(f.un?f.min||1:st,v)};
+function foodLine(it){const f=FOODS[it.id],nm=f.n.toLowerCase();
+  if(it.label) return `<b class="num">${esc(it.label)}</b> de ${esc(nm)}`;
+  if(f.un) return `<b class="num">${fmt(it.q)}</b> ${esc(it.q<=1?f.un[0]:f.un[1])}`;
+  return `<b class="num">${fmt(it.q)} ${f.ml?"ml":"g"}</b> de ${esc(nm)}`}
+function buildMenu(d,t){
+  const meals=(d.meals===5?MEALS5:MEALS4).map(m=>{
+    const sel=(d.sel&&d.sel[m.k])||{};
+    const pid=m.pr[(sel.p||0)%m.pr.length], cid=m.cb[(sel.c||0)%m.cb.length];
+    const items=(m.fx||[]).map(([id,q])=>({id,q}));
+    let fixed={p:0,c:0,g:0}; items.forEach(it=>{const x=fMac(it.id,it.q);fixed.p+=x.p;fixed.c+=x.c;fixed.g+=x.g});
+    const P=Math.max(0,t.p*m.ps-fixed.p), C=Math.max(0,t.c*m.cs-fixed.c);
+    const pu=fMac(pid,FOODS[pid].un?1:100), cu=fMac(cid,FOODS[cid].un?1:100);
+    const unitQ=id=>FOODS[id].un?1:100;
+    let x=0,y=0; // em unidades (ou porções de 100 g)
+    for(let i=0;i<8;i++){ x=Math.max(0,(P-cu.p*y)/pu.p); y=Math.max(0,(C-pu.c*x)/cu.c) }
+    let qp=fRound(pid,x*unitQ(pid));
+    let qc=fRound(cid,Math.max(0,(C-fMac(pid,qp).c)/cu.c)*unitQ(cid));
+    return {...m,pid,cid,items:[{id:pid,q:qp,swap:"p"},{id:cid,q:qc,swap:"c"},...items]};
+  });
+  // azeite para chegar perto da meta de gordura, dividido entre almoço e jantar (0 a 2 colheres de sopa cada)
+  let tot={p:0,c:0,g:0}; meals.forEach(m=>m.items.forEach(it=>{const x=fMac(it.id,it.q);tot.p+=x.p;tot.c+=x.c;tot.g+=x.g}));
+  const oilMeals=meals.filter(m=>m.oil);
+  const spoons=Math.max(0,Math.min(2,Math.round(((t.g-tot.g)/8/oilMeals.length)*2)/2));
+  if(spoons>0) oilMeals.forEach(m=>{m.items.push({id:"azeite",q:spoons*8,label:`${fmt(spoons)} colher${spoons>1?"es":""} de sopa`});tot.g+=spoons*8});
+  meals.forEach(m=>{m.mac={p:0,c:0,g:0};m.items.forEach(it=>{const x=fMac(it.id,it.q);m.mac.p+=x.p;m.mac.c+=x.c;m.mac.g+=x.g})});
+  tot.kcal=tot.p*4+tot.c*4+tot.g*9;
+  return {meals,tot};
+}
+
+function renderDiet(){
+  if(!DIET||dietEdit) return renderDietForm();
+  const t=dietTargets(DIET), {meals,tot}=buildMenu(DIET,t);
+  const bar=(v,goal)=>`<div class="mbar"><i style="width:${Math.min(100,goal?v/goal*100:0)}%"></i></div>`;
+  view.innerHTML=`
+  <div class="eyebrow">Sua dieta · ${esc(t.goal.n)}</div>
+  <section class="card">
+    <div class="row between" style="align-items:flex-end">
+      <div><div class="eyebrow">Meta do dia</div><div class="big num" style="font-size:52px">${fmt(t.kcal)}<small style="font-size:18px;margin-left:6px;color:var(--muted)">kcal</small></div></div>
+      ${flameSVG("","width:44px;height:52px")}
+    </div>
+    <div class="macros">
+      <div><span>Proteína</span><b class="num">${t.p} g</b>${bar(tot.p,t.p)}</div>
+      <div><span>Carboidrato</span><b class="num">${t.c} g</b>${bar(tot.c,t.c)}</div>
+      <div><span>Gordura</span><b class="num">${t.g} g</b>${bar(tot.g,t.g)}</div>
+    </div>
+    <p class="muted" style="font-size:12px;margin:10px 0 0">O cardápio abaixo dá cerca de ${fmt(Math.round(tot.kcal/10)*10)} kcal, ${fmt(Math.round(tot.p))} g de proteína, ${fmt(Math.round(tot.c))} g de carbo e ${fmt(Math.round(tot.g))} g de gordura.</p>
+  </section>
+  ${meals.map(m=>`<section class="card meal">
+    <div class="row between"><h2 style="font-size:18px;font-weight:800">${esc(m.n)}</h2><span class="muted num" style="font-size:12px">${fmt(Math.round((m.mac.p*4+m.mac.c*4+m.mac.g*9)/10)*10)} kcal · ${fmt(Math.round(m.mac.p))} g prot.</span></div>
+    <div class="foods">${m.items.map(it=>`<div class="food"><span>${foodLine(it)}</span>${it.swap?`<button class="mini" data-swap="${m.k}|${it.swap}" aria-label="Trocar ${esc(FOODS[it.id].n)}">Trocar</button>`:""}</div>`).join("")}
+    ${m.veg?`<div class="food"><span class="muted">Salada e legumes à vontade</span></div>`:""}</div>
+  </section>`).join("")}
+  <section class="card" style="font-size:14px">
+    <b>O peso não andou?</b>
+    <p class="muted" style="margin:6px 0 10px">Pese-se uma vez por semana, de manhã, em jejum. Se em 2 semanas o peso ficou parado, suba 150 kcal. Se subiu mais de 1% por semana, desça 150.${DIET.adj?` Ajuste atual: <b class="num" style="color:var(--fg)">${DIET.adj>0?"+":""}${DIET.adj} kcal</b>.`:""}</p>
+    <div class="row"><button class="btn ghost" style="flex:1" data-adj2="-150">− 150 kcal</button><button class="btn ghost" style="flex:1" data-adj2="150">+ 150 kcal</button></div>
+  </section>
+  <section class="card" style="font-size:14px">
+    <b>O que faz diferença</b>
+    <ul class="muted tips">
+      <li>Bata a proteína todo dia. É o que mais pesa para crescer.</li>
+      <li>Coma carboidrato 1 a 3 horas antes do treino para ter força na carga.</li>
+      <li>Creatina 3 a 5 g por dia, todo dia, em qualquer horário.</li>
+      <li>Água: uns 35 ml por kg (${fmt(Math.round(DIET.weight*.035*10)/10)} L para você).</li>
+      <li>Durma de 7 a 9 horas. O músculo cresce no descanso.</li>
+    </ul>
+  </section>
+  <button class="btn ghost block" id="dietedit">Editar meus dados</button>
+  <p class="note">Gasto estimado: ${fmt(t.tdee)} kcal/dia (basal ${fmt(t.bmr)} kcal). Os números são estimativas para começar. Com alguma condição de saúde, fale com um nutricionista.</p>`;
+  view.querySelectorAll("[data-swap]").forEach(b=>b.onclick=()=>{const [k,s]=b.dataset.swap.split("|");DIET.sel=DIET.sel||{};const cur=DIET.sel[k]||{};cur[s]=(cur[s]||0)+1;DIET.sel[k]=cur;saveDiet();const y=window.scrollY;render();window.scrollTo(0,y)});
+  view.querySelectorAll("[data-adj2]").forEach(b=>b.onclick=()=>{DIET.adj=Math.max(-600,Math.min(900,(DIET.adj||0)+(+b.dataset.adj2)));saveDiet();const y=window.scrollY;render();window.scrollTo(0,y);toast(`Meta agora: ${fmt(dietTargets(DIET).kcal)} kcal por dia.`)});
+  $("#dietedit").onclick=()=>{dietEdit=true;dietDraft=null;render();window.scrollTo(0,0)};
+}
+function renderDietForm(){
+  const d=dietDraft||(dietDraft=DIET?{...DIET}:{sex:"m",weight:75,height:175,age:25,act:1.6,goal:"lean",meals:4});
+  const segBtns=(attr,opts,cur)=>opts.map(o=>`<button data-${attr}="${o.v}" aria-pressed="${String(o.v)===String(cur)}">${o.n}</button>`).join("");
+  const act=ACTS.find(a=>a.v===d.act)||ACTS[1], goal=GOALS.find(g=>g.v===d.goal)||GOALS[0];
+  view.innerHTML=`
+  <div class="wo-head"><div class="eyebrow">${DIET?"Editar meus dados":"Montar sua dieta"}</div>${DIET?`<button class="linkbtn" id="dcancel">Cancelar</button>`:""}</div>
+  ${DIET?"":`<section class="card" style="font-size:14px"><b>Dieta para hipertrofia</b><p class="muted" style="margin:6px 0 0">Com seus dados, o app calcula calorias e macros e monta um cardápio com as quantidades certas. Você pode trocar os alimentos depois.</p></section>`}
+  <section class="card ed">
+    <div class="nf"><label>Sexo</label><div class="seg wide" role="group">${segBtns("sex",[{v:"m",n:"Masculino"},{v:"f",n:"Feminino"}],d.sex)}</div></div>
+    <div class="grid2">
+      ${numField("dw","Peso (kg)",d.weight,.5)}
+      ${numField("dh","Altura (cm)",d.height,1)}
+      ${numField("da","Idade",d.age,1)}
+    </div>
+  </section>
+  <section class="card ed">
+    <div class="nf"><label>Rotina fora da academia</label><div class="seg wide" role="group">${segBtns("act",ACTS,d.act)}</div><span class="muted" style="font-size:12px">${act.d}. Já conta os 4 treinos por semana.</span></div>
+    <div class="nf"><label>Objetivo</label><div class="seg wide" role="group">${segBtns("goal",GOALS,d.goal)}</div><span class="muted" style="font-size:12px">${goal.d}.</span></div>
+    <div class="nf"><label>Refeições por dia</label><div class="seg wide" role="group">${segBtns("meals",[{v:4,n:"4 refeições"},{v:5,n:"5 refeições"}],d.meals)}</div></div>
+  </section>
+  <button class="btn primary block" id="dsave">${DIET?"Salvar":"Montar minha dieta"}</button>`;
+  const sync=()=>{const g=id=>parseFloat(String($("#"+id).value).replace(",","."));
+    d.weight=Math.max(35,Math.min(250,g("dw")||75)); d.height=Math.max(130,Math.min(230,Math.round(g("dh"))||175)); d.age=Math.max(14,Math.min(90,Math.round(g("da"))||25))};
+  view.querySelectorAll("[data-nf]").forEach(b=>b.onclick=()=>{const inp=$("#"+b.dataset.nf);let v=parseFloat(String(inp.value).replace(",","."))||0;v=Math.max(0,+(v+parseFloat(b.dataset.d)).toFixed(2));inp.value=fmt(v)});
+  view.querySelectorAll("[data-sex]").forEach(b=>b.onclick=()=>{sync();d.sex=b.dataset.sex;render()});
+  view.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>{sync();d.act=+b.dataset.act;render()});
+  view.querySelectorAll("[data-goal]").forEach(b=>b.onclick=()=>{sync();d.goal=b.dataset.goal;render()});
+  view.querySelectorAll("[data-meals]").forEach(b=>b.onclick=()=>{sync();d.meals=+b.dataset.meals;render()});
+  const c=$("#dcancel"); if(c) c.onclick=()=>{dietEdit=false;dietDraft=null;render();window.scrollTo(0,0)};
+  $("#dsave").onclick=()=>{sync();const first=!DIET;DIET={...d};saveDiet();dietEdit=false;dietDraft=null;render();window.scrollTo(0,0);toast(first?"Dieta pronta. Toque em Trocar para mudar um alimento.":"Dados salvos. Cardápio atualizado.")};
 }
 
 /* ============ EFEITOS ============ */
@@ -1138,7 +1318,7 @@ document.addEventListener("input",e=>{if(W&&e.target&&(e.target.id==="w"||e.targ
   const base=render; let lastKey=null, lastWM=null;
   render=function(){
     base();
-    const k=W?(W.summary?"sum":W.rest?"rest":"ex"+W.exIdx):tab+"|"+(editDay||"");
+    const k=W?(W.summary?"sum":W.rest?"rest":"ex"+W.exIdx):tab+"|"+(editDay||"")+(dietEdit?"|d":"");
     if(k!==lastKey){lastKey=k;view.classList.remove("enter");void view.offsetWidth;view.classList.add("enter")}
     const on=!!W;
     if(on!==lastWM&&window.AuraAndroid&&AuraAndroid.workoutMode){lastWM=on;try{AuraAndroid.workoutMode(on)}catch(e){}}
