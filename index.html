@@ -1070,7 +1070,7 @@ const FOODS={
   arroz:{n:"Arroz branco cozido",p:2.5,c:28,g:.2,step:10},
   macarrao:{n:"Macarrão cozido",p:5,c:30,g:.9,step:10},
   batata:{n:"Batata-doce cozida",p:.6,c:18.4,g:.1,step:10},
-  aveia:{n:"Aveia em flocos",p:14,c:57,g:8,step:5},
+  aveia:{n:"Aveia em flocos",p:14,c:57,g:8,step:5,max:100},
   paof:{n:"Pão francês",un:["pão francês","pães franceses"],p:4,c:29,g:1.5,min:1,max:4},
   paoi:{n:"Pão integral",un:["fatia de pão integral","fatias de pão integral"],p:3,c:12,g:1,min:1,max:6},
   tapioca:{n:"Tapioca (goma)",p:0,c:54,g:0,step:10},
@@ -1083,10 +1083,10 @@ const FOODS={
 };
 /* Refeições: fonte de proteína e de carboidrato trocáveis, mais itens fixos. ps/cs = fatia das metas do dia. */
 const MEALS4=[
-  {k:"cafe",n:"Café da manhã",pr:["ovo","whey","cottage"],cb:["paof","paoi","tapioca","cuscuz","aveia"],fx:[["banana",1]],ps:.25,cs:.25},
+  {k:"cafe",n:"Café da manhã",pr:["ovo","whey","cottage"],cb:["paof","paoi","tapioca","cuscuz","aveia"],fx:[["banana",1]],ps:.25,cs:.27},
   {k:"almoco",n:"Almoço",pr:["frango","patinho","tilapia","ovo"],cb:["arroz","macarrao","batata"],fx:[["feijao",100]],veg:true,oil:true,ps:.3,cs:.3},
-  {k:"lanche",n:"Lanche pré-treino",pr:["whey","iogurte","atum","ovo"],cb:["aveia","paoi","banana","tapioca"],fx:[["amendoim",15]],ps:.2,cs:.25},
-  {k:"jantar",n:"Jantar",pr:["frango","patinho","tilapia","atum"],cb:["arroz","batata","macarrao","cuscuz"],veg:true,oil:true,ps:.25,cs:.2}
+  {k:"lanche",n:"Lanche pré-treino",pr:["whey","iogurte","atum","ovo"],cb:["aveia","paoi","banana","tapioca"],fx:[["amendoim",15],["banana",1]],ps:.2,cs:.2},
+  {k:"jantar",n:"Jantar",pr:["frango","patinho","tilapia","atum"],cb:["arroz","batata","macarrao","cuscuz"],veg:true,oil:true,ps:.25,cs:.23}
 ];
 const MEALS5=[
   {...MEALS4[0],ps:.2,cs:.22},{...MEALS4[1],ps:.25,cs:.27},{...MEALS4[2],ps:.2,cs:.25},{...MEALS4[3],ps:.2,cs:.18},
@@ -1124,10 +1124,12 @@ function buildMenu(d,t){
     const P=Math.max(0,t.p*m.ps-fixed.p), C=Math.max(0,t.c*m.cs-fixed.c);
     const pu=fMac(pid,FOODS[pid].un?1:100), cu=fMac(cid,FOODS[cid].un?1:100);
     const unitQ=id=>FOODS[id].un?1:100;
-    let x=0,y=0; // em unidades (ou porções de 100 g)
-    for(let i=0;i<8;i++){ x=Math.max(0,(P-cu.p*y)/pu.p); y=Math.max(0,(C-pu.c*x)/cu.c) }
-    let qp=fRound(pid,x*unitQ(pid));
-    let qc=fRound(cid,Math.max(0,(C-fMac(pid,qp).c)/cu.c)*unitQ(cid));
+    // A fonte de proteína cobre ~85% da meta da refeição; o resto vem do carbo. Essa proteína do carbo
+    // (arroz, pão, aveia) entra no lugar de parte do carbo, para as calorias fecharem.
+    let qp=fRound(pid,P*.85/pu.p*unitQ(pid));
+    const Cr=Math.max(0,C-fMac(pid,qp).c); let y=Cr/cu.c;
+    for(let i=0;i<6;i++) y=Math.max(0,(Cr-cu.p*y)/cu.c);
+    let qc=fRound(cid,y*unitQ(cid));
     return {...m,pid,cid,items:[{id:pid,q:qp,swap:"p"},{id:cid,q:qc,swap:"c"},...items]};
   });
   // azeite para chegar perto da meta de gordura, dividido entre almoço e jantar (0 a 2 colheres de sopa cada)
